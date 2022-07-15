@@ -161,7 +161,7 @@ if ss.df0 is not None:
                         "which is equal to the duration between a customer’s first purchase and the last day in the dataset.")
 
     # Show Data Info
-    with st.expander("Show Data Info"):
+    with st.container():
         # Delete columns that are not useful
         try:
             d1 = ss.df0.drop(["fu", "fu_n", "sales_office", "sales_office_n", "sales_person", "business_model", "Abs"], axis=1,
@@ -194,11 +194,6 @@ if ss.df0 is not None:
             pass
 
         ss.df1 = df1
-
-        buffer = io.StringIO()
-        ss.df0.info(buf=buffer)
-        s = buffer.getvalue()
-        st.text(s)
 
     # Model Evaluation Section
     st.header("2. Model Evaluation")
