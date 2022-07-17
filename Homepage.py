@@ -38,34 +38,25 @@ ss = st.session_state
 # initialize session state variable
 if "df0" not in ss:
     ss.df0 = None
-
 if "df1" not in ss:
     ss.df1 = None
-
 if "df_ch" not in ss:
     ss.df_ch = None
-
 if "df_rft" not in ss:
     ss.df_rft = None
-
 if "bgf" not in ss:
     ss.bgf = None
-
 if "df_rftv" not in ss:
     ss.df_rftv = None
-
 if "df_viz" not in ss:
     ss.df_viz = None
 
 if "customer_id_input" not in ss:
     ss.customer_id_input = None
-
 if "customer_name_input" not in ss:
     ss.customer_name_input = None
-
 if "prob_alive_input" not in ss:
     ss.prob_alive_input = None
-
 if "expected_lifetime" not in ss:
     ss.expected_lifetime = None
 
@@ -220,7 +211,8 @@ if ss.df0 is not None:
                         monetary_value_col = "order_intake_amount_lc",
                         calibration_period_end = max_cal_date,
                         observation_period_end = max_date,
-                        freq = "M")
+                        freq = 'M',
+                        )
 
                 ss.df_ch = df_ch
 
@@ -441,7 +433,7 @@ if ss.df0 is not None:
                                                             how="left").set_index('ec_eu_customer')
 
                     order = ['ec_eu_customer_n', 'eu_industry_type_n', 'eu_industry_segment_n',
-                             'CLV', 'frequency', 'T', 'monetary_value', 'predict_purch_90',
+                             'CLV', 'frequency', 'recency', 'T', 'monetary_value', 'predict_purch_90',
                              'predict_purch_180', 'predict_purch_270', 'predict_purch_360',
                              'prob_alive', 'exp_avg_rev', 'avg_rev', 'error_rev']
 
