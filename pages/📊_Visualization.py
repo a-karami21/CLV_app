@@ -7,6 +7,7 @@ import streamlit as st
 import io
 import plotly.express as px
 import plotly.graph_objects as go
+import math
 
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
@@ -93,6 +94,7 @@ else:
     with st.container():
         st.subheader("Customer P(Alive) History")
 
+        # Customer Selection
         if ss.df_viz is not None:
             customers_name = ss.df_viz['ec_eu_customer_n']
             customer_name_input = st.selectbox("Select customer ID to see its purchase behavior", customers_name)
@@ -100,7 +102,7 @@ else:
             customer_id_input = ss.df_viz.loc[ss.df_viz.ec_eu_customer_n == customer_name_input, 'ec_eu_customer'].values[0]
             ss.customer_id_input = customer_id_input
 
-        # select a customer
+        # P Alive History
         custID = ss.customer_id_input
 
         df1C = ss.df1[ss.df1["ec_eu_customer"] == custID]
@@ -120,6 +122,48 @@ else:
                                     )
 
         st.pyplot(fig7.figure)
+
+        # RFM & Last purchase date
+        with st.container():
+            profile_col1, profile_col2, profile_col3, profile_col4, profile_col5, profile_col6 = st.columns(6)
+
+            df_rfm_customer = ss.df_viz[ss.df_viz["ec_eu_customer"] == custID]
+
+            with profile_col1:
+                st.markdown("**Recency**")
+
+                customer_recency = math.ceil((df_rfm_customer.iloc[0]['recency'])/30)
+                st.markdown(str(customer_recency) + " Lifetime Length")
+
+            with profile_col2:
+                st.markdown("**Frequency**")
+
+                customer_frequency = math.ceil(df_rfm_customer.iloc[0]['frequency'])
+                st.markdown(str(customer_frequency) + " Active Months")
+
+            with profile_col3:
+                st.markdown("**Monetary**")
+
+                customer_monetary = math.ceil(df_rfm_customer.iloc[0]['monetary_value'])
+                st.markdown("$ " + f'{customer_monetary:,}' + " Average Purchase Value")
+
+            with profile_col4:
+                st.markdown("**Last Purchase Date**")
+                cust_last_purchase_date = max_date.date()
+                st.markdown(cust_last_purchase_date)
+
+            with profile_col5:
+                st.markdown("**Predicted Purchase**")
+
+                customer_purchase = math.ceil(df_rfm_customer.iloc[0]['predict_purch_360'])
+                st.markdown(str(customer_purchase) + " Purchases")
+
+            with profile_col6:
+                st.markdown("**CLV**")
+
+                customer_CLV = math.ceil(df_rfm_customer.iloc[0]['CLV'])
+                st.markdown("$ " + f'{customer_monetary:,}')
+
 
     # Top 20 Customer
     with st.container():
