@@ -162,7 +162,7 @@ else:
                 st.markdown("**CLV**")
 
                 customer_CLV = math.ceil(df_rfm_customer.iloc[0]['CLV'])
-                st.markdown("$ " + f'{customer_monetary:,}')
+                st.markdown("$ " + f'{customer_CLV:,}')
 
 
     # Top 20 Customer
