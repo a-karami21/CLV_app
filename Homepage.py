@@ -143,11 +143,12 @@ if ss.df0 is not None:
             image = Image.open('CLV_Flowchart.png')
             st.image(image, caption='Basic Workflow')
 
-            st.markdown("**What is RFM?**")
+            st.markdown("**What is RFM & T?**")
 
             st.markdown("* **Recency**: the age of the customer at the moment of his last purchase, "
                         "which is equal to the duration between a customer’s first purchase and their last purchase.")
             st.markdown("* **Frequency**: the number of periods in which the customer has made a repeat purchase.")
+            st.markdown("* **Monetary**: the average of purchase transaction value.")
             st.markdown("* **T**: the age of the customer at the end of the period under study, "
                         "which is equal to the duration between a customer’s first purchase and the last day in the dataset.")
 
