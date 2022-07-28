@@ -73,14 +73,14 @@ else:
             fig4 = plt.figure(figsize=(5, 5))
             ax = sns.distplot(ss.df_ch["recency_cal"])
             ax.set_xlim(0, max_rec)
-            ax.set_title("recency (days): distribution of the customers")
+            ax.set_title("recency (month): distribution of the customers")
             st.pyplot(fig4.figure)
         with middle_column3:
             # training: frequency
             fig5 = plt.figure(figsize=(5, 5))
             ax = sns.distplot(ss.df_ch["frequency_cal"])
             ax.set_xlim(0, max_freq)
-            ax.set_title("frequency (days): distribution of the customers")
+            ax.set_title("frequency (month): distribution of the customers")
             st.pyplot(fig5.figure)
         with right_column3:
             # training: monetary
