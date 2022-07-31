@@ -137,12 +137,6 @@ if ss.df0 is not None:
             st.markdown("Customer lifetime value is the **present value**"
                         " of the **future (net) cash flows** associated with a particular customer")
 
-        with right_column:
-            st.markdown("**Workflow**")
-
-            image = Image.open('CLV_Flowchart.png')
-            st.image(image, caption='Basic Workflow')
-
             st.markdown("**What is RFM?**")
 
             st.markdown("* **Recency**: the age of the customer at the moment of his last purchase, "
@@ -150,6 +144,12 @@ if ss.df0 is not None:
             st.markdown("* **Frequency**: the number of periods in which the customer has made a repeat purchase.")
             st.markdown("* **T**: the age of the customer at the end of the period under study, "
                         "which is equal to the duration between a customer’s first purchase and the last day in the dataset.")
+
+        with right_column:
+            st.markdown("**Workflow**")
+
+            image = Image.open('CLV_Flowchart.png')
+            st.image(image, caption='Basic Workflow')
 
     # Show Data Info
     with st.container():
