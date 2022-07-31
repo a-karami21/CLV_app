@@ -156,7 +156,7 @@ if ss.df0 is not None:
     with st.container():
         # Delete columns that are not useful
         try:
-            d1 = ss.df0.drop(["fu", "fu_n", "sales_office", "sales_office_n", "sales_person", "business_model", "Abs"], axis=1,
+            d1 = ss.df0.drop(["fu", "fu_n", "sales_office", "sales_office_n", "sales_person", "business_model"], axis=1,
                           inplace=True)
         except:
             pass
