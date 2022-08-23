@@ -412,7 +412,7 @@ if ss.df0 is not None:
 
             with st.expander("Performance Score"):
                 st.write("BG/NBD Model Performance:")
-                st.markdown("* MSE: {0}".format(score_model(frequency_holdout_actual, frequency_holdout_predicted, 'mse')))
+                st.markdown("* MSE: {0}".format(score_model(frequency_holdout_actual, frequency_holdout_predicted, 'mae')))
                 st.markdown("* RMSE: {0}".format(score_model(frequency_holdout_actual, frequency_holdout_predicted, 'rmse')))
                 st.write("Gamma-Gamma Model Performance:")
                 st.markdown("* Pearson correlation: %.3f" % corr)
