@@ -319,7 +319,7 @@ if ss.df0 is not None:
                         val = np.sqrt(val)
                 # Mean Absolute Error
                 elif metric == 'mae':
-                    np.sum(np.abs(actuals - predicted)) / actuals.shape[0]
+                    val = np.sum(np.abs(actuals - predicted)) / actuals.shape[0]
                 else:
                     val = None
                 return val
