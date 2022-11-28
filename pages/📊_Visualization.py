@@ -48,13 +48,6 @@ else:
         p_alive_slider = st.slider("Probability alive lower than X %", 10, 100, 80)
         ss.prob_alive_input = float(p_alive_slider / 100)
 
-        #if ss.df_viz is not None:
-        #    customers_name = ss.df_viz['ec_eu_customer_n']
-        #    customer_name_input = st.selectbox("Select customer ID to see its purchase behavior", customers_name)
-        #    ss.customer_name_input = customer_name_input
-        #    customer_id_input = ss.df_viz.loc[ss.df_viz.ec_eu_customer_n == customer_name_input, 'ec_eu_customer'].values[0]
-        #    ss.customer_id_input = customer_id_input
-
     st.header("Visualization")
 
     # RFM Spread Visualization
@@ -63,29 +56,29 @@ else:
         left_column3, middle_column3, right_column3 = st.columns(3)
 
         # training: axis length
-        max_freq = ss.df_ch["frequency_cal"].quantile(0.98)
-        max_rec = ss.df_ch["recency_cal"].max()
-        max_mon = ss.df_ch["monetary_value_cal"].quantile(0.98)
-        max_T = ss.df_ch["T_cal"].max()
+        max_freq = ss.df_rft["frequency"].quantile(0.98)
+        max_rec = ss.df_rft["recency"].max()
+        max_mon = ss.df_rft["monetary_value"].quantile(0.98)
+        max_T = ss.df_rft["T"].max()
 
         with left_column3:
             # training recency
             fig4 = plt.figure(figsize=(5, 5))
-            ax = sns.distplot(ss.df_ch["recency_cal"])
+            ax = sns.distplot(ss.df_rft["recency"])
             ax.set_xlim(0, max_rec)
             ax.set_title("recency (days): distribution of the customers")
             st.pyplot(fig4.figure)
         with middle_column3:
             # training: frequency
             fig5 = plt.figure(figsize=(5, 5))
-            ax = sns.distplot(ss.df_ch["frequency_cal"])
+            ax = sns.distplot(ss.df_rft["frequency"])
             ax.set_xlim(0, max_freq)
             ax.set_title("frequency (days): distribution of the customers")
             st.pyplot(fig5.figure)
         with right_column3:
             # training: monetary
             fig6 = plt.figure(figsize=(5, 5))
-            ax = sns.distplot(ss.df_ch["monetary_value_cal"])
+            ax = sns.distplot(ss.df_rft["monetary_value"])
             ax.set_xlim(0, max_mon)
             ax.set_title("monetary (USD): distribution of the customers")
             st.pyplot(fig6.figure)
@@ -100,6 +93,7 @@ else:
             customer_name_input = st.selectbox("Select customer ID to see its purchase behavior", customers_name)
             ss.customer_name_input = customer_name_input
             customer_id_input = ss.df_viz.loc[ss.df_viz.ec_eu_customer_n == customer_name_input, 'ec_eu_customer'].values[0]
+
             ss.customer_id_input = customer_id_input
 
         # P Alive History
@@ -108,8 +102,8 @@ else:
         df1C = ss.df1[ss.df1["ec_eu_customer"] == custID]
 
         # X selected customer: cumulative transactions
-        max_date = ss.df1["year_month"].max()
-        min_date = ss.df1["year_month"].min()
+        max_date = ss.df1["order_intake_date"].max()
+        min_date = ss.df1["order_intake_date"].min()
         span_days = (max_date - min_date).days
 
         # history of the selected customer: probability over time of being alive
@@ -118,7 +112,7 @@ else:
         fig7 = plot_history_alive(model=ss.bgf,
                                     t=span_days,
                                     transactions=df1C,
-                                    datetime_col="year_month"
+                                    datetime_col="order_intake_date"
                                     )
 
         st.pyplot(fig7.figure)
@@ -173,11 +167,11 @@ else:
             st.markdown("Top 20 Customers by CLV")
 
             if industry_type_cust == "Energy":
-                df_top20 = ss.df_viz[ss.df_viz['eu_industry_type_n'].isin(['Energy'])]
+                df_top20 = ss.df_viz[ss.df_viz['ec_eu_industry_type_n'].isin(['Energy'])]
             elif industry_type_cust == "Material":
-                df_top20 = ss.df_viz[ss.df_viz['eu_industry_type_n'].isin(['Material'])]
+                df_top20 = ss.df_viz[ss.df_viz['ec_eu_industry_type_n'].isin(['Material'])]
             elif industry_type_cust == "Life":
-                df_top20 = ss.df_viz[ss.df_viz['eu_industry_type_n'].isin(['Life'])]
+                df_top20 = ss.df_viz[ss.df_viz['ec_eu_industry_type_n'].isin(['Life'])]
             elif industry_type_cust == "All":
                 df_top20 = ss.df_viz
 
@@ -200,11 +194,11 @@ else:
             st.markdown("Top 20 Customers with P Alive < " +str(ss.prob_alive_input*100) +" %")
 
             if industry_type_cust == "Energy":
-                df_p_alive = ss.df_viz[ss.df_viz['eu_industry_type_n'].isin(['Energy'])]
+                df_p_alive = ss.df_viz[ss.df_viz['ec_eu_industry_type_n'].isin(['Energy'])]
             elif industry_type_cust == "Material":
-                df_p_alive = ss.df_viz[ss.df_viz['eu_industry_type_n'].isin(['Material'])]
+                df_p_alive = ss.df_viz[ss.df_viz['ec_eu_industry_type_n'].isin(['Material'])]
             elif industry_type_cust == "Life":
-                df_p_alive = ss.df_viz[ss.df_viz['eu_industry_type_n'].isin(['Life'])]
+                df_p_alive = ss.df_viz[ss.df_viz['ec_u_industry_type_n'].isin(['Life'])]
             elif industry_type_cust == "All":
                 df_p_alive = ss.df_viz
 
@@ -230,8 +224,8 @@ else:
         st.subheader("Industry Type & Segment CLV")
         viz_left_column2, viz_right_column2 = st.columns((2,1))
 
-        df_industry_viz = ss.df_viz.groupby(['eu_industry_type_n',
-                                             'eu_industry_segment_n'])['CLV'].mean().sort_values(
+        df_industry_viz = ss.df_viz.groupby(['ec_eu_industry_type_n',
+                                             'ec_eu_industry_sub_segment_n'])['CLV'].mean().sort_values(
             ascending=False).reset_index()
 
         # Industry Segment Treemap
@@ -239,7 +233,7 @@ else:
             st.markdown("Industry Segment Treemap")
 
             fig = px.treemap(df_industry_viz,
-                             path = [px.Constant('All'), 'eu_industry_type_n', 'eu_industry_segment_n'],
+                             path = [px.Constant('All'), 'ec_eu_industry_type_n', 'ec_eu_industry_sub_segment_n'],
                              values = 'CLV',
                              width = 760,
                              height = 400)
@@ -257,7 +251,7 @@ else:
             df_industry_viz = df_industry_viz[:10].reset_index()
 
             st.markdown("Top 10 Industry Segment")
-            y = df_industry_viz['eu_industry_segment_n']
+            y = df_industry_viz['ec_eu_industry_sub_segment_n']
             x = df_industry_viz['CLV'] / 1000
 
             graph3 = figure(y_range=list(reversed(y)),

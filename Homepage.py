@@ -44,6 +44,8 @@ if "df_ch" not in ss:
     ss.df_ch = None
 if "df_rft" not in ss:
     ss.df_rft = None
+if "bgf_eva" not in ss:
+    ss.bgf_eva = None
 if "bgf" not in ss:
     ss.bgf = None
 if "df_rftv" not in ss:
@@ -93,13 +95,7 @@ with st.container():
 if orderintake_file is not None and ss.df0 is None:
     @st.experimental_memo
     def read_order_intake_csv():
-        dtypes = {'year_month': 'str'}
-        df0 = pd.read_csv(orderintake_file, dtype=dtypes, parse_dates=['year_month'])
-        df0 = df0.rename(columns={'eu_industry_segment_n': 'eu_industry_sub_segment_n',
-                                  'eu_industry_sub_segment_n': 'eu_industry_segment_n'})
-        df0['order_intake_amount_lc'] = df0['order_intake_amount_lc'].replace({'\$': '', ',': ''}, regex=True).astype(
-            float)
-
+        df0 = pd.read_csv(orderintake_file, sep = ";", parse_dates=['order_intake_date'])
         return df0
 
     ss.df0 = read_order_intake_csv()
@@ -153,26 +149,16 @@ if ss.df0 is not None:
 
     # Show Data Info
     with st.container():
-        # Delete columns that are not useful
-        try:
-            d1 = ss.df0.drop(["fu", "fu_n", "sales_office", "sales_office_n", "sales_person", "business_model", "Abs"], axis=1,
-                          inplace=True)
-        except:
-            pass
-
-        # Remove transactions with 0 OI amount
-        df1 = ss.df0[ss.df0["order_intake_amount_lc"] > 0]
-
         # treat CustomerID as a categorical variable
-        df1["ec_eu_customer"] = df1["ec_eu_customer"].astype(np.int64).astype(object)
+        ss.df0["ec_eu_customer"] = ss.df0["ec_eu_customer"].astype(np.int64).astype(object)
 
         # Filter to business unit input
         if business_unit_selection == "Product":
-            df1 = df1[df1['business_model_n'].isin(["Product"])]
+            df1 = ss.df0[ss.df0['business_model_n'].isin(["Product"])]
         elif business_unit_selection == "Project":
-            df1 = df1[df1['business_model_n'].isin(["Project (POC)"])]
+            df1 = ss.df0[ss.df0['business_model_n'].isin(["Project (POC)"])]
         elif business_unit_selection == "Both":
-            df1 = df1[df1.business_model_n != "Service"]
+            df1 = ss.df0[ss.df0.business_model_n != "Service"]
 
         # Filter to industry type input
         if industry_type_selection == "Energy":
@@ -200,18 +186,18 @@ if ss.df0 is not None:
             def train_test_split(df1):
                 t_holdout = 365                                         # days to reserve for holdout period
 
-                max_date = df1["year_month"].max()                     # end date of observations
+                max_date = df1["order_intake_date"].max()                     # end date of observations
 
                 max_cal_date = max_date - timedelta(days=t_holdout)     # end date of chosen calibration period
 
                 df_ch = calibration_and_holdout_data(
                         transactions = df1,
                         customer_id_col = "ec_eu_customer",
-                        datetime_col = "year_month",
+                        datetime_col = "order_intake_date",
                         monetary_value_col = "order_intake_amount_lc",
                         calibration_period_end = max_cal_date,
                         observation_period_end = max_date,
-                        freq = 'M',
+                        freq = 'D',
                         )
 
                 ss.df_ch = df_ch
@@ -227,21 +213,48 @@ if ss.df0 is not None:
                 bgf.fit(
                     frequency=df_ch["frequency_cal"],
                     recency=df_ch["recency_cal"],
-                    T=df_ch["T_cal"],
-                    weights=None,
-                    verbose=True,
-                    tol=1e-06)
+                    T=df_ch["T_cal"])
 
                 return bgf
 
-            bgf = bgf_fit(df_ch)
+            ss.bgf_eva = bgf_fit(df_ch)
+
+            def bgf_evaluation_prep(bgf, df_ch):
+                # get predicted frequency during holdout period
+                frequency_holdout_predicted = bgf.predict(df_ch['duration_holdout'],
+                                                          df_ch['frequency_cal'],
+                                                          df_ch['recency_cal'],
+                                                          df_ch['T_cal'])
+
+                # get actual frequency during holdout period
+                frequency_holdout_actual = df_ch['frequency_holdout']
+
+                return frequency_holdout_predicted, frequency_holdout_actual
+
+            frequency_holdout_predicted, frequency_holdout_actual = bgf_evaluation_prep(ss.bgf_eva, df_ch)
+
+            # RMSE/MSE score
+            def score_model(actuals, predicted, metric='rmse'):
+                # make sure metric name is lower case
+                metric = metric.lower()
+                # Mean Squared Error and Root Mean Squared Error
+                if metric == 'mse' or metric == 'rmse':
+                    val = np.sum(np.square(actuals - predicted)) / actuals.shape[0]
+                    if metric == 'rmse':
+                        val = np.sqrt(val)
+                # Mean Absolute Error
+                elif metric == 'mae':
+                    val = np.sum(np.abs(actuals - predicted)) / actuals.shape[0]
+                else:
+                    val = None
+                return val
 
             # determine recency, frequency, T, monetary value for each customer
             def determine_df_rft(df1, max_date):
                 df_rft = summary_data_from_transaction_data(
                     transactions=df1,
                     customer_id_col="ec_eu_customer",
-                    datetime_col="year_month",
+                    datetime_col="order_intake_date",
                     monetary_value_col="order_intake_amount_lc",
                     observation_period_end=max_date,
                     freq="D")
@@ -258,10 +271,7 @@ if ss.df0 is not None:
                 bgf.fit(
                     frequency=ss.df_rft["frequency"],
                     recency=ss.df_rft["recency"],
-                    T=ss.df_rft["T"],
-                    weights=None,
-                    verbose=True,
-                    tol=1e-06)
+                    T=ss.df_rft["T"])
 
                 return bgf
 
@@ -293,36 +303,6 @@ if ss.df0 is not None:
 
             ss.df_rft["prob_alive"] = calculate_prob_alive()
 
-            def bgf_evaluation_prep(bgf, df_ch):
-                # get predicted frequency during holdout period
-                frequency_holdout_predicted = bgf.predict(df_ch['duration_holdout'],
-                                                          df_ch['frequency_cal'],
-                                                          df_ch['recency_cal'],
-                                                          df_ch['T_cal'])
-
-                # get actual frequency during holdout period
-                frequency_holdout_actual = df_ch['frequency_holdout']
-
-                return frequency_holdout_predicted, frequency_holdout_actual
-
-            frequency_holdout_predicted, frequency_holdout_actual = bgf_evaluation_prep(bgf, df_ch)
-
-            # RMSE/MSE score
-            def score_model(actuals, predicted, metric='rmse'):
-                # make sure metric name is lower case
-                metric = metric.lower()
-                # Mean Squared Error and Root Mean Squared Error
-                if metric == 'mse' or metric == 'rmse':
-                    val = np.sum(np.square(actuals - predicted)) / actuals.shape[0]
-                    if metric == 'rmse':
-                        val = np.sqrt(val)
-                # Mean Absolute Error
-                elif metric == 'mae':
-                    np.sum(np.abs(actuals - predicted)) / actuals.shape[0]
-                else:
-                    val = None
-                return val
-
             def gg_prep():
                 # select customers with monetary value > 0
                 df_rftv = ss.df_rft[ss.df_rft["monetary_value"] > 1]
@@ -339,7 +319,7 @@ if ss.df0 is not None:
             # fitting the Gamma-Gamma model
             @st.cache
             def gg_fit():
-                ggf = GammaGammaFitter(penalizer_coef=0.001)
+                ggf = GammaGammaFitter(penalizer_coef=0.0001)
                 ggf.fit(
                     frequency=df_rftv["frequency"],
                     monetary_value=df_rftv["monetary_value"])
@@ -395,20 +375,11 @@ if ss.df0 is not None:
                 st.write("Training BG/NBD Model: does the model reflect the actual data closely enough?")
                 left_column, right_column = st.columns(2)
                 with left_column:
-                    fig1 = plot_period_transactions(bgf)
+                    fig1 = plot_period_transactions(ss.bgf_eva)
                     st.pyplot(fig1.figure)
                 with right_column:
-                    fig2 = plot_calibration_purchases_vs_holdout_purchases(bgf, df_ch)
+                    fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_eva, df_ch, n=9)
                     st.pyplot(fig2.figure)
-
-            # Predicted vs Actual Full Dataset Graph Container
-            with st.container():
-                st.write("Predicted vs Actual on the Full Dataset")
-                fig3 = plot_period_transactions(
-                    model=ss.bgf,
-                    max_frequency=10,
-                    figsize=(20,6))
-                st.pyplot(fig3.figure)
 
             with st.expander("Performance Score"):
                 st.write("BG/NBD Model Performance:")
@@ -428,13 +399,14 @@ if ss.df0 is not None:
 
                     df_final = df_final.reset_index().merge(ss.df1[["ec_eu_customer",
                                                                     "ec_eu_customer_n",
-                                                                    "eu_industry_type_n",
-                                                                    "eu_industry_segment_n"]],
+                                                                    "ec_eu_industry_type_n",
+                                                                    "ec_eu_industry_sub_segment_n",
+                                                                    "ec_eu_industry_segment_n"]],
                                                             how="left").set_index('ec_eu_customer')
 
-                    order = ['ec_eu_customer_n', 'eu_industry_type_n', 'eu_industry_segment_n',
-                             'CLV', 'frequency', 'recency', 'T', 'monetary_value', 'predict_purch_90',
-                             'predict_purch_180', 'predict_purch_270', 'predict_purch_360',
+                    order = ['ec_eu_customer_n', 'ec_eu_industry_type_n', 'ec_eu_industry_sub_segment_n',
+                             'ec_eu_industry_segment_n','CLV', 'frequency', 'recency', 'T', 'monetary_value',
+                             'predict_purch_90', 'predict_purch_180', 'predict_purch_270', 'predict_purch_360',
                              'prob_alive', 'exp_avg_rev', 'avg_rev', 'error_rev']
 
                     df_final = df_final[order]
