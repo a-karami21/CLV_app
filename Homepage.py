@@ -1,14 +1,10 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import timedelta
 import seaborn as sns
 import streamlit as st
-import io
 
 from PIL import Image
-from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource
 
 from sklearn.metrics import mean_absolute_percentage_error
 
@@ -20,9 +16,6 @@ from lifetimes.utils import \
 from lifetimes.plotting import \
     plot_period_transactions, \
     plot_calibration_purchases_vs_holdout_purchases
-
-from bokeh.models import FactorRange
-
 
 sns.set(rc={'image.cmap': 'coolwarm'})
 
@@ -48,6 +41,8 @@ if "bgf_eva" not in ss:
     ss.bgf_eva = None
 if "bgf" not in ss:
     ss.bgf = None
+if "ggf" not in ss:
+    ss.ggf = None
 if "df_rftv" not in ss:
     ss.df_rftv = None
 if "df_viz" not in ss:
@@ -64,9 +59,53 @@ if "expected_lifetime" not in ss:
 
 with st.container():
     # Main Panel Title
-    st.title('Customer Lifetime Value Web App')
+    st.title('Analytical CRM')
+    st.write("This app is for analyzing customer-base characteristics and future value")
 
-    st.write("This app is for predicting and monitoring customer lifetime value")
+# Overview Section
+    st.header("1. Overview")
+
+# App Function & Guide
+with st.expander("App Overview"):
+    left_column, right_column = st.columns(2)
+    with left_column:
+        st.markdown("**App Functions**")
+        st.markdown("* Determine high value customers")
+        st.markdown("* Detect customer inactivity")
+        st.markdown("* Analyze customer purchase behavior")
+        st.markdown("* Predict customer lifetime value")
+        st.markdown("* Predict industry growth")
+        st.markdown("")
+
+        st.markdown("**User Guide**")
+        st.markdown("1. Upload the provided dataset on the sidebar.")
+        st.markdown("2. Select **[Business Unit]** and **[Industry Type]** to be trained.")
+        st.markdown("3. Select desired **[Interest Rate]** and **[Lifetime (Months)]** you wish to predict.")
+        st.markdown("4. Check the **Train Model** checkbox.")
+        st.markdown("5. Open the **[Performance Score]** box to see model performance.")
+        st.markdown("6. You can view or download the model **results & stats**.")
+        st.markdown("7. Go to **[Visualization]** page in sidebar for visualization.")
+        st.markdown("8. Input your desired **filters** in sidebar.")
+        st.markdown("")
+
+        st.markdown("**What is Customer Lifetime Value?**")
+        st.markdown("Customer lifetime value is the **present value**"
+                    " of the **future (net) cash flows** associated with a particular customer.")
+
+        st.markdown("**What is RFM Metrics?**")
+        st.markdown("RFM Metrics are metrics for measuring customer purchase characteristics.")
+        st.markdown("* **Recency**: the age of the customer at the moment of his last purchase, "
+                    "which is equal to the duration between a customer’s first purchase and their last purchase.")
+        st.markdown("* **Frequency**: the number of periods in which the customer has made a repeat purchase.")
+        st.markdown("* **T**: the age of the customer at the end of the period under study, "
+                    "which is equal to the duration between a customer’s first purchase and the last day in the dataset.")
+        st.markdown("* **Monetary**: the customer's average transaction value (order intake).")
+
+    with right_column:
+        st.markdown("**Workflow**")
+
+        image = Image.open('CLV_Flowchart.png')
+        st.image(image, caption='Basic Workflow')
 
 with st.container():
     with col1.container():
@@ -101,51 +140,6 @@ if orderintake_file is not None and ss.df0 is None:
     ss.df0 = read_order_intake_csv()
 
 if ss.df0 is not None:
-    # Overview Section
-    st.header("1. Overview")
-
-    # App Function & Guide
-    with st.expander("App Overview"):
-        left_column, right_column = st.columns(2)
-        with left_column:
-            st.markdown("**App Functions**")
-            st.markdown("* Determine high value customers")
-            st.markdown("* Detect customer inactivity")
-            st.markdown("* Analyze customer purchase behavior")
-            st.markdown("* Predict customer lifetime value")
-            st.markdown("* Predict industry growth")
-            st.markdown("")
-
-            st.markdown("**User Guide**")
-            st.markdown("1. Upload the provided dataset on the sidebar.")
-            st.markdown("2. Select **[Business Unit]** and **[Industry Type]** to be trained.")
-            st.markdown("3. Select desired **[Interest Rate]** and **[Lifetime (Months)]** you wish to predict.")
-            st.markdown("4. Check the **Train Model** checkbox.")
-            st.markdown("5. Open the **[Performance Score]** box.")
-            st.markdown("  * BG/NBD Model performance is **good** if RMSE below **1.5**, **great** if below **1.0**.")
-            st.markdown("  * Gamma-Gamma Model performance is **good** if pearson correlation below **0.5** and MAPE **close to zero**.")
-            st.markdown("6. You can view the model **results & stats**.")
-            st.markdown("7. Go to **[Visualization]** page in sidebar.")
-            st.markdown("8. Input your desired **filters** in sidebar.")
-            st.markdown("")
-
-            st.markdown("**What is Customer Lifetime Value?**")
-            st.markdown("Customer lifetime value is the **present value**"
-                        " of the **future (net) cash flows** associated with a particular customer")
-
-            st.markdown("**What is RFM?**")
-
-            st.markdown("* **Recency**: the age of the customer at the moment of his last purchase, "
-                        "which is equal to the duration between a customer’s first purchase and their last purchase.")
-            st.markdown("* **Frequency**: the number of periods in which the customer has made a repeat purchase.")
-            st.markdown("* **T**: the age of the customer at the end of the period under study, "
-                        "which is equal to the duration between a customer’s first purchase and the last day in the dataset.")
-
-        with right_column:
-            st.markdown("**Workflow**")
-
-            image = Image.open('CLV_Flowchart.png')
-            st.image(image, caption='Basic Workflow')
 
     # Show Data Info
     with st.container():
@@ -206,6 +200,22 @@ if ss.df0 is not None:
 
             df_ch, max_date = train_test_split(ss.df1)
 
+            # determine recency, frequency, T, monetary value for each customer
+            def determine_df_rft(df1, max_date):
+                df_rft = summary_data_from_transaction_data(
+                    transactions=df1,
+                    customer_id_col="ec_eu_customer",
+                    datetime_col="order_intake_date",
+                    monetary_value_col="order_intake_amount_lc",
+                    observation_period_end=max_date,
+                    freq="D")
+
+                return df_rft
+
+            # Return df_rft to session state
+            ss.df_rft = determine_df_rft(df1, max_date)
+
+
             # Fit the BG/NBD Model
             @st.cache
             def bgf_fit(df_ch):
@@ -219,9 +229,9 @@ if ss.df0 is not None:
 
             ss.bgf_eva = bgf_fit(df_ch)
 
-            def bgf_evaluation_prep(bgf, df_ch):
+            def bgf_evaluation_prep(bgf_eva, df_ch):
                 # get predicted frequency during holdout period
-                frequency_holdout_predicted = bgf.predict(df_ch['duration_holdout'],
+                frequency_holdout_predicted = bgf_eva.predict(df_ch['duration_holdout'],
                                                           df_ch['frequency_cal'],
                                                           df_ch['recency_cal'],
                                                           df_ch['T_cal'])
@@ -249,21 +259,6 @@ if ss.df0 is not None:
                     val = None
                 return val
 
-            # determine recency, frequency, T, monetary value for each customer
-            def determine_df_rft(df1, max_date):
-                df_rft = summary_data_from_transaction_data(
-                    transactions=df1,
-                    customer_id_col="ec_eu_customer",
-                    datetime_col="order_intake_date",
-                    monetary_value_col="order_intake_amount_lc",
-                    observation_period_end=max_date,
-                    freq="D")
-
-                return df_rft
-
-            # Return df_rft to session state
-            ss.df_rft = determine_df_rft(df1, max_date)
-
             # BG/NBD model fitting
             @st.cache
             def bgf_full_fit():
@@ -289,8 +284,6 @@ if ss.df0 is not None:
             # call helper function: predict each customer's purchases over multiple time periods
             t_FC = [90, 180, 270, 360]
             _ = [predict_purch(ss.df_rft, t) for t in t_FC]
-            #st.write("predicted number of purchases for each customer over next t days:")
-            #st.dataframe(ss.df_rft.style.format("{:,.1f}"))
 
             # probability that a customer is alive for each customer in dataframe
             def calculate_prob_alive():
@@ -305,7 +298,7 @@ if ss.df0 is not None:
 
             def gg_prep():
                 # select customers with monetary value > 0
-                df_rftv = ss.df_rft[ss.df_rft["monetary_value"] > 1]
+                df_rftv = ss.df_rft[ss.df_rft["monetary_value"] > 0]
 
                 # Gamma-Gamma model requires a Pearson correlation close to 0
                 # between purchase frequency and monetary value
@@ -326,11 +319,11 @@ if ss.df0 is not None:
 
                 return ggf
 
-            ggf = gg_fit()
+            ss.ggf = gg_fit()
 
             # estimate the average transaction value of each customer, based on frequency and monetary value
             def gg_evaluation(df_rftv):
-                exp_avg_rev = ggf.conditional_expected_average_profit(
+                exp_avg_rev = ss.ggf.conditional_expected_average_profit(
                     df_rftv["frequency"],
                     df_rftv["monetary_value"]
                 )
@@ -353,7 +346,7 @@ if ss.df0 is not None:
 
                 discount_m = (1 + DISCOUNT_a) ** (1 / 12) - 1  # monthly discount rate
 
-                clv = ggf.customer_lifetime_value(
+                clv = ss.ggf.customer_lifetime_value(
                     transaction_prediction_model=ss.bgf,
                     frequency=df_rftv["frequency"],
                     recency=df_rftv["recency"],
@@ -383,8 +376,12 @@ if ss.df0 is not None:
 
             with st.expander("Performance Score"):
                 st.write("BG/NBD Model Performance:")
-                st.markdown("* MAE: {0}".format(score_model(frequency_holdout_actual, frequency_holdout_predicted, 'mae')))
-                st.markdown("* RMSE: {0}".format(score_model(frequency_holdout_actual, frequency_holdout_predicted, 'rmse')))
+                st.markdown("* MAE: {0}".format(score_model(frequency_holdout_actual,
+                                                            frequency_holdout_predicted,
+                                                            'mae')))
+                st.markdown("* RMSE: {0}".format(score_model(frequency_holdout_actual,
+                                                             frequency_holdout_predicted,
+                                                             'rmse')))
                 st.write("Gamma-Gamma Model Performance:")
                 st.markdown("* Pearson correlation: %.3f" % corr)
                 st.markdown("* MAPE of predicted revenues: " + f'{mape:.2f}')

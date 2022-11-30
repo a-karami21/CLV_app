@@ -1,30 +1,13 @@
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from datetime import timedelta
 import seaborn as sns
 import streamlit as st
-import io
 import plotly.express as px
-import plotly.graph_objects as go
 import math
 
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource
-
-from sklearn.metrics import mean_absolute_percentage_error
-
-from lifetimes import BetaGeoFitter, GammaGammaFitter
-from lifetimes.utils import \
-    calibration_and_holdout_data, \
-    summary_data_from_transaction_data
 
 from lifetimes.plotting import \
-    plot_period_transactions, \
-    plot_history_alive, \
-    plot_calibration_purchases_vs_holdout_purchases
-
-from bokeh.models import FactorRange
+    plot_history_alive
 
 sns.set(rc={'image.cmap': 'coolwarm'})
 
