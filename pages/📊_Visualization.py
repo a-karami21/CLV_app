@@ -116,7 +116,7 @@ else:
                 st.markdown("**Frequency**")
 
                 customer_frequency = math.ceil(df_rfm_customer.iloc[0]['frequency'])
-                st.markdown(str(customer_frequency) + " Active Months")
+                st.markdown(str(customer_frequency) + " Active Days")
 
             with profile_col3:
                 st.markdown("**Monetary**")
@@ -220,6 +220,9 @@ else:
                              values = 'CLV',
                              width = 760,
                              height = 400)
+
+            fig.update_traces(textinfo="label+percent root+percent parent")
+
 
             fig.update_layout(
                 treemapcolorway= ["orange", "darkblue", "green"],

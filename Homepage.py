@@ -71,21 +71,10 @@ with st.expander("App Overview"):
     with left_column:
         st.markdown("**App Functions**")
         st.markdown("* Determine high value customers")
-        st.markdown("* Detect customer inactivity")
+        st.markdown("* Identify customer inactivity")
         st.markdown("* Analyze customer purchase behavior")
         st.markdown("* Predict customer lifetime value")
         st.markdown("* Predict industry growth")
-        st.markdown("")
-
-        st.markdown("**User Guide**")
-        st.markdown("1. Upload the provided dataset on the sidebar.")
-        st.markdown("2. Select **[Business Unit]** and **[Industry Type]** to be trained.")
-        st.markdown("3. Select desired **[Interest Rate]** and **[Lifetime (Months)]** you wish to predict.")
-        st.markdown("4. Check the **Train Model** checkbox.")
-        st.markdown("5. Open the **[Performance Score]** box to see model performance.")
-        st.markdown("6. You can view or download the model **results & stats**.")
-        st.markdown("7. Go to **[Visualization]** page in sidebar for visualization.")
-        st.markdown("8. Input your desired **filters** in sidebar.")
         st.markdown("")
 
         st.markdown("**What is Customer Lifetime Value?**")
@@ -102,10 +91,30 @@ with st.expander("App Overview"):
         st.markdown("* **Monetary**: the customer's average transaction value (order intake).")
 
     with right_column:
-        st.markdown("**Workflow**")
+        st.markdown("**User Guide**")
+        st.markdown("1. Upload the provided dataset* on the sidebar.")
+        st.markdown("2. Select **[Business Unit]** and **[Industry Type]** to be trained.")
+        st.markdown("3. Select desired **[Interest Rate]** and **[Lifetime (Months)]** you wish to predict.")
+        st.markdown("4. Check the **Train Model** checkbox.")
+        st.markdown("5. Open the **[Performance Score]** box to see model performance.")
+        st.markdown("* **MAE** is the average error of the predicted model")
+        st.markdown("Example: MAE value of 1 means the prediction is off by 1 transaction on average")
+        st.markdown("* **RMSE** is the root average error of the predicted model similar to stdev")
+        st.markdown("Example: High RMSE value means the prediction error has a high variance")
+        st.markdown("* **Pearson Correlation** is the correlation between frequency and monetary.")
+        st.markdown("The closer to zero the more appropriate the data for the model because"
+                    " model assumes there are no dependency between frequency and monetary")
+        st.markdown("* **MAPE** is the average percentage error of the prediction.")
+        st.markdown("is used to calculate error between predicted and actual average transaction value")
+        st.markdown("6. You can view or download the model **results & stats**.")
+        st.markdown("7. Go to **[Visualization]** page in sidebar for visualization.")
+        st.markdown("8. Input your desired **filters** in sidebar.")
+        st.markdown("")
 
-        image = Image.open('CLV_Flowchart.png')
-        st.image(image, caption='Basic Workflow')
+with st.expander("App Workflow"):
+    st.markdown("**Workflow**")
+    image = Image.open('CLV_Flowchart.png')
+    st.image(image, caption='Basic Workflow', width=800)
 
 with st.container():
     with col1.container():
