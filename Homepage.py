@@ -17,6 +17,9 @@ from lifetimes.plotting import \
     plot_period_transactions, \
     plot_calibration_purchases_vs_holdout_purchases
 
+from scipy.stats import chi2_contingency
+from scipy.stats import chi2
+
 sns.set(rc={'image.cmap': 'coolwarm'})
 
 # Page Config
@@ -59,8 +62,8 @@ if "expected_lifetime" not in ss:
 
 with st.container():
     # Main Panel Title
-    st.title('Analytical CRM')
-    st.write("This app is for analyzing customer-base characteristics and future value")
+    st.title('Customer-Base Analysis App')
+    st.write("This app is for analyzing customer-base purchase behavior and future value")
 
 # Overview Section
     st.header("1. Overview")
@@ -101,6 +104,8 @@ with st.expander("App Overview"):
         st.markdown("Example: MAE value of 1 means the prediction is off by 1 transaction on average")
         st.markdown("* **RMSE** is the root average error of the predicted model similar to stdev")
         st.markdown("Example: High RMSE value means the prediction error has a high variance")
+        st.markdown("* **Chi-Square test** is a test to identify if there are significant difference"
+                    "between model and actual data.")
         st.markdown("* **Pearson Correlation** is the correlation between frequency and monetary.")
         st.markdown("The closer to zero the more appropriate the data for the model because"
                     " model assumes there are no dependency between frequency and monetary")
@@ -377,23 +382,142 @@ if ss.df0 is not None:
                 st.write("Training BG/NBD Model: does the model reflect the actual data closely enough?")
                 left_column, right_column = st.columns(2)
                 with left_column:
-                    fig1 = plot_period_transactions(ss.bgf_eva)
+                    def eva_viz1():
+                        import matplotlib.pyplot as plt
+
+                        n = ss.bgf_eva.data.shape[0]
+                        simulated_data = ss.bgf_eva.generate_new_data(size=n)
+
+                        model_counts = pd.DataFrame(ss.bgf_eva.data["frequency"].value_counts().sort_index().iloc[:9])
+                        simulated_counts = pd.DataFrame(simulated_data["frequency"].value_counts().sort_index().iloc[:9])
+                        combined_counts = model_counts.merge(simulated_counts, how="outer", left_index=True,
+                                                             right_index=True).fillna(0)
+                        combined_counts.columns = ["Actual", "Model"]
+
+                        ax = combined_counts.plot(kind="bar")
+
+                        ax.bar_label(ax.containers[0], label_type='edge')
+                        ax.bar_label(ax.containers[1], label_type='edge')
+
+                        plt.legend()
+                        plt.title("Frequency of Repeat Transactions")
+                        plt.ylabel("Customers")
+                        plt.xlabel("Number of Calibration Period Transactions")
+
+                        return ax
+
+                    fig1 = eva_viz1()
                     st.pyplot(fig1.figure)
                 with right_column:
                     fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_eva, df_ch, n=9)
                     st.pyplot(fig2.figure)
+            with st.container():
+                left_column2, middle_column2, right_column2 = st.columns(3)
+                with left_column2:
+                    with st.expander("Performance Score"):
+                        st.write("BG/NBD Model Performance:")
+                        st.markdown("* MAE: {0}".format(score_model(frequency_holdout_actual,
+                                                                    frequency_holdout_predicted,
+                                                                    'mae')))
+                        st.markdown("* RMSE: {0}".format(score_model(frequency_holdout_actual,
+                                                                     frequency_holdout_predicted,
+                                                                     'rmse')))
+                        st.write("Gamma-Gamma Model Performance:")
+                        st.markdown("* Pearson correlation: %.3f" % corr)
+                        st.markdown("* MAPE of predicted revenues: " + f'{mape:.2f}')
+                with middle_column2:
+                    with st.expander("Prediction Difference of Customer Count"):
+                        import matplotlib.pyplot as plt
 
-            with st.expander("Performance Score"):
-                st.write("BG/NBD Model Performance:")
-                st.markdown("* MAE: {0}".format(score_model(frequency_holdout_actual,
-                                                            frequency_holdout_predicted,
-                                                            'mae')))
-                st.markdown("* RMSE: {0}".format(score_model(frequency_holdout_actual,
-                                                             frequency_holdout_predicted,
-                                                             'rmse')))
-                st.write("Gamma-Gamma Model Performance:")
-                st.markdown("* Pearson correlation: %.3f" % corr)
-                st.markdown("* MAPE of predicted revenues: " + f'{mape:.2f}')
+                        n = ss.bgf_eva.data.shape[0]
+                        simulated_data2 = ss.bgf_eva.generate_new_data(size=n)
+
+                        model_counts2 = pd.DataFrame(ss.bgf_eva.data["frequency"].value_counts().sort_index().iloc[:])
+                        simulated_counts2 = pd.DataFrame(simulated_data2["frequency"].value_counts().sort_index().iloc[:])
+                        combined_counts2 = model_counts2.merge(simulated_counts2, how="outer", left_index=True,
+                                                                 right_index=True).fillna(0)
+                        combined_counts2.columns = ["Actual", "Model"]
+
+                        df_viz1 = combined_counts2
+                        df_viz1['Difference'] = combined_counts2['Actual'] - combined_counts2['Model']
+
+                        df_viz1.index.name = "Transaction"
+
+                        df_viz1_9 = df_viz1[8:]
+                        df_viz1_9 = df_viz1_9.mean(axis=0)
+                        df_viz1_9.name = "9+"
+
+                        combined_counts_final = df_viz1[:8].append(df_viz1_9)
+
+                        st._legacy_dataframe(combined_counts_final.style.format("{:,.0f}"))
+
+                        chi, pval, dof, exp = chi2_contingency(combined_counts_final.iloc[:, :2])
+
+                        significance = 0.001
+                        p = 1 - significance
+                        critical_value = chi2.ppf(p, dof)
+
+                        st.markdown('p-value is {:.5f}'.format(pval))
+                        st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
+                        if chi > critical_value:
+                            st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1. 
+                          There is significant difference between actual and model.""" % (significance))
+                        else:
+                            st.markdown("""At %.3f level of significance, we accept the null hypotheses. 
+                          There is no significant difference between actual and model.""" % (significance))
+
+                with right_column2:
+                    with st.expander("Prediction Difference of Calibration vs Holdout Purchases"):
+
+                        from matplotlib import pyplot as plt
+
+                        kind = "frequency_cal"
+
+                        x_labels = {
+                            "frequency_cal": "Purchases in calibration period",
+                            "recency_cal": "Age of customer at last purchase",
+                            "T_cal": "Age of customer at the end of calibration period",
+                            "time_since_last_purchase": "Time since user made last purchase",
+                        }
+
+                        summary = ss.df_ch.copy()
+                        duration_holdout = summary.iloc[0]["duration_holdout"]
+
+                        summary["model_predictions"] = ss.bgf_eva.conditional_expected_number_of_purchases_up_to_time(
+                            duration_holdout, summary["frequency_cal"], summary["recency_cal"], summary["T_cal"])
+
+                        purch_diff = summary.groupby(kind)[["frequency_holdout", "model_predictions"]].mean().iloc[:]
+
+                        purch_diff['Difference'] = purch_diff['model_predictions'] - purch_diff['frequency_holdout']
+
+                        df_viz2 = purch_diff
+
+                        df_viz2.index.name = "Transaction"
+
+                        df_viz2_9 = df_viz2[8:]
+                        df_viz2_9 = df_viz2_9.mean(axis=0)
+                        df_viz2_9.name = "9+"
+
+                        purch_diff_final = df_viz2[:8].append(df_viz2_9)
+
+                        st._legacy_dataframe(purch_diff_final.style.format("{:,.2f}"))
+
+                        chi, pval, dof, exp = chi2_contingency(purch_diff_final.iloc[:, :2])
+
+                        st.markdown('p-value is {:.5f}'.format(pval))
+
+                        significance = 0.001
+                        p = 1 - significance
+                        critical_value = chi2.ppf(p, dof)
+
+                        st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
+
+                        if chi > critical_value:
+                            st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1. 
+                        There is significant difference between actual and model.""" % (significance))
+                        else:
+                            st.markdown("""At %.3f level of significance, we accept the null hypotheses. 
+                        There is no significant difference between actual and model.""" % (significance))
 
         with st.expander("Show Result"):
             if ss.df_rft is not None:
@@ -419,25 +543,25 @@ if ss.df0 is not None:
                     df_final = df_final.drop_duplicates()
                     df_final = df_final.rename_axis('ec_eu_customer').reset_index()
 
-                    st.dataframe(df_final.style.format({
-                        "CLV": "{:,.2f}",
-                        "frequency": "{:,.0f}",
-                        "recency": "{:,.0f}",
-                        "T": "{:,.0f}",
-                        "monetary_value": "{:,.2f}",
-                        "predict_purch_90": "{:,.2f}",
-                        "predict_purch_180": "{:,.2f}",
-                        "predict_purch_270": "{:,.2f}",
-                        "predict_purch_360": "{:,.2f}",
-                        "prob_alive": "{:,.2f}",
-                        "exp_avg_rev": "{:,.2f}",
-                        "avg_rev": "{:,.2f}",
-                        "error_rev": "{:,.2f}",
-                    }))
-
                     return df_final
 
                 ss.df_viz = export_table(ss.df_rftv)
+
+                st.dataframe(ss.df_viz.style.format({
+                    "CLV": "{:,.2f}",
+                    "frequency": "{:,.0f}",
+                    "recency": "{:,.0f}",
+                    "T": "{:,.0f}",
+                    "monetary_value": "{:,.2f}",
+                    "predict_purch_90": "{:,.2f}",
+                    "predict_purch_180": "{:,.2f}",
+                    "predict_purch_270": "{:,.2f}",
+                    "predict_purch_360": "{:,.2f}",
+                    "prob_alive": "{:,.2f}",
+                    "exp_avg_rev": "{:,.2f}",
+                    "avg_rev": "{:,.2f}",
+                    "error_rev": "{:,.2f}",
+                }))
 
                 @st.cache
                 def convert_df(df):
@@ -455,4 +579,4 @@ if ss.df0 is not None:
                 # Display full table from the result
                 st.write("Result Stats")
 
-                st.dataframe(ss.df_rftv.describe().style.format("{:,.2f}"))
+                st.dataframe(ss.df_viz.describe().style.format("{:,.2f}"))

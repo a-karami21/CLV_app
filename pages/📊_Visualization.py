@@ -208,7 +208,7 @@ else:
         viz_left_column2, viz_right_column2 = st.columns((2,1))
 
         df_industry_viz = ss.df_viz.groupby(['ec_eu_industry_type_n',
-                                             'ec_eu_industry_sub_segment_n'])['CLV'].mean().sort_values(
+                                             'ec_eu_industry_sub_segment_n'])['CLV'].sum().sort_values(
             ascending=False).reset_index()
 
         # Industry Segment Treemap
