@@ -231,7 +231,7 @@ if ss.df0 is not None:
 
 
             # Fit the BG/NBD Model
-            @st.cache
+            @st.cache_resource
             def bgf_fit(df_ch):
                 bgf = BetaGeoFitter(penalizer_coef=1e-06)
                 bgf.fit(
@@ -274,7 +274,7 @@ if ss.df0 is not None:
                 return val
 
             # BG/NBD model fitting
-            @st.cache
+            @st.cache_resource
             def bgf_full_fit():
                 bgf = BetaGeoFitter(penalizer_coef=1e-06)
                 bgf.fit(
@@ -324,7 +324,7 @@ if ss.df0 is not None:
             df_rftv, corr = gg_prep()
 
             # fitting the Gamma-Gamma model
-            @st.cache
+            @st.cache_resource
             def gg_fit():
                 ggf = GammaGammaFitter(penalizer_coef=0.0001)
                 ggf.fit(
@@ -353,7 +353,7 @@ if ss.df0 is not None:
             df_rftv, mape = gg_evaluation(df_rftv)
 
             # compute customer lifetime value
-            @st.cache
+            @st.cache_resource
             def compute_clv(df_rftv):
                 DISCOUNT_a = annual_discount_rate  # annual discount rate
                 LIFE = ss.expected_lifetime  # lifetime expected for the customers in months
@@ -563,7 +563,7 @@ if ss.df0 is not None:
                     "error_rev": "{:,.2f}",
                 }))
 
-                @st.cache
+                @st.cache_resource
                 def convert_df(df):
                     return df.to_csv().encode('utf-8')
 
