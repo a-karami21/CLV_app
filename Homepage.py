@@ -465,232 +465,136 @@ if ss.df0 is not None:
 
                         return ax
 
-                    tab1, tab2, tab3, tab4 = st.tabs(ss.bu_list)
-                    with tab1:
-                        fig1 = eva_viz1(ss.bgf_list["YY113"])
-                        st.pyplot(fig1.figure)
-                    with tab2:
-                        fig1 = eva_viz1(ss.bgf_list["YY116"])
-                        st.pyplot(fig1.figure)
-                    with tab3:
-                        fig1 = eva_viz1(ss.bgf_list["YY117"])
-                        st.pyplot(fig1.figure)
-                    with tab4:
-                        fig1 = eva_viz1(ss.bgf_list["YY119"])
-                        st.pyplot(fig1.figure)
+                    tab_list = st.tabs(ss.bu_list)
+                    for bu, tab in zip(ss.bu_list, tab_list):
+                        with tab:
+                            fig1 = eva_viz1(ss.bgf_list[bu])
+                            st.pyplot(fig1.figure)
 
                 with right_column:
-                    tab1, tab2, tab3, tab4 = st.tabs(ss.bu_list)
-                    with tab1:
-                        fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_list["YY113"],
-                                                                               ss.df_ch_list["YY113"], n=9)
-                        st.pyplot(fig2.figure)
-                    with tab2:
-                        fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_list["YY116"],
-                                                                               ss.df_ch_list["YY116"], n=9)
-                        st.pyplot(fig2.figure)
-                    with tab3:
-                        fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_list["YY117"],
-                                                                               ss.df_ch_list["YY117"], n=9)
-                        st.pyplot(fig2.figure)
-                    with tab4:
-                        fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_list["YY119"],
-                                                                               ss.df_ch_list["YY119"], n=9)
-                        st.pyplot(fig2.figure)
+                    tab_list = st.tabs(ss.bu_list)
+                    for bu, tab in zip(ss.bu_list, tab_list):
+                        with tab:
+                            fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_list[bu],
+                                                                                   ss.df_ch_list[bu], n=9)
+                            st.pyplot(fig2.figure)
 
-            #
-            #     with middle_column2:
-            #         with st.expander("Prediction Difference of Customer Count"):
-            #             tab1, tab2 = st.tabs(["Product", "Project"])
-            #             with tab1:
-            #                 import matplotlib.pyplot as plt
-            #
-            #                 n = ss.bgf_list[0].data.shape[0]
-            #                 simulated_data2 = ss.bgf_list[0].generate_new_data(size=n)
-            #
-            #                 model_counts2 = pd.DataFrame(ss.bgf_list[0].data["frequency"].value_counts().sort_index().iloc[:])
-            #                 simulated_counts2 = pd.DataFrame(simulated_data2["frequency"].value_counts().sort_index().iloc[:])
-            #                 combined_counts2 = model_counts2.merge(simulated_counts2, how="outer", left_index=True,
-            #                                                          right_index=True).fillna(0)
-            #                 combined_counts2.columns = ["Actual", "Model"]
-            #
-            #                 df_viz1 = combined_counts2
-            #                 df_viz1['Difference'] = combined_counts2['Actual'] - combined_counts2['Model']
-            #
-            #                 df_viz1.index.name = "Transaction"
-            #
-            #                 df_viz1_9 = df_viz1[8:]
-            #                 df_viz1_9 = df_viz1_9.mean(axis=0)
-            #                 df_viz1_9.name = "9+"
-            #
-            #                 combined_counts_final = df_viz1[:8].append(df_viz1_9)
-            #
-            #                 st._legacy_dataframe(combined_counts_final.style.format("{:,.0f}"))
-            #
-            #                 chi, pval, dof, exp = chi2_contingency(combined_counts_final.iloc[:, :2])
-            #
-            #                 significance = 0.001
-            #                 p = 1 - significance
-            #                 critical_value = chi2.ppf(p, dof)
-            #
-            #                 st.markdown('p-value is {:.5f}'.format(pval))
-            #                 st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
-            #                 if chi > critical_value:
-            #                     st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
-            #                   There is significant difference between actual and model.""" % (significance))
-            #                 else:
-            #                     st.markdown("""At %.3f level of significance, we accept the null hypotheses.
-            #                   There is no significant difference between actual and model.""" % (significance))
-            #
-            #             with tab2:
-            #                 import matplotlib.pyplot as plt
-            #
-            #                 n = ss.bgf_list[1].data.shape[1]
-            #                 simulated_data2 = ss.bgf_list[1].generate_new_data(size=n)
-            #
-            #                 model_counts2 = pd.DataFrame(
-            #                     ss.bgf_list[1].data["frequency"].value_counts().sort_index().iloc[:])
-            #                 simulated_counts2 = pd.DataFrame(
-            #                     simulated_data2["frequency"].value_counts().sort_index().iloc[:])
-            #                 combined_counts2 = model_counts2.merge(simulated_counts2, how="outer", left_index=True,
-            #                                                        right_index=True).fillna(0)
-            #                 combined_counts2.columns = ["Actual", "Model"]
-            #
-            #                 df_viz1 = combined_counts2
-            #                 df_viz1['Difference'] = combined_counts2['Actual'] - combined_counts2['Model']
-            #
-            #                 df_viz1.index.name = "Transaction"
-            #
-            #                 df_viz1_9 = df_viz1[8:]
-            #                 df_viz1_9 = df_viz1_9.mean(axis=0)
-            #                 df_viz1_9.name = "9+"
-            #
-            #                 combined_counts_final = df_viz1[:8].append(df_viz1_9)
-            #
-            #                 st._legacy_dataframe(combined_counts_final.style.format("{:,.0f}"))
-            #
-            #                 chi, pval, dof, exp = chi2_contingency(combined_counts_final.iloc[:, :2])
-            #
-            #                 significance = 0.001
-            #                 p = 1 - significance
-            #                 critical_value = chi2.ppf(p, dof)
-            #
-            #                 st.markdown('p-value is {:.5f}'.format(pval))
-            #                 st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
-            #                 if chi > critical_value:
-            #                     st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
-            #                   There is significant difference between actual and model.""" % (significance))
-            #                 else:
-            #                     st.markdown("""At %.3f level of significance, we accept the null hypotheses.
-            #                   There is no significant difference between actual and model.""" % (significance))
-            #
-            #     with right_column2:
-            #         with st.expander("Prediction Difference of Calibration vs Holdout Purchases"):
-            #             tab1, tab2 = st.tabs(["Product", "Project"])
-            #             with tab1:
-            #                 from matplotlib import pyplot as plt
-            #
-            #                 kind = "frequency_cal"
-            #
-            #                 x_labels = {
-            #                     "frequency_cal": "Purchases in calibration period",
-            #                     "recency_cal": "Age of customer at last purchase",
-            #                     "T_cal": "Age of customer at the end of calibration period",
-            #                     "time_since_last_purchase": "Time since user made last purchase",
-            #                 }
-            #
-            #                 summary = ss.df_ch_list[0].copy()
-            #                 duration_holdout = summary.iloc[0]["duration_holdout"]
-            #
-            #                 summary["model_predictions"] = ss.bgf_list[0].conditional_expected_number_of_purchases_up_to_time(
-            #                     duration_holdout, summary["frequency_cal"], summary["recency_cal"], summary["T_cal"])
-            #
-            #                 purch_diff = summary.groupby(kind)[["frequency_holdout", "model_predictions"]].mean().iloc[:]
-            #
-            #                 purch_diff['Difference'] = purch_diff['model_predictions'] - purch_diff['frequency_holdout']
-            #
-            #                 df_viz2 = purch_diff
-            #
-            #                 df_viz2.index.name = "Transaction"
-            #
-            #                 df_viz2_9 = df_viz2[8:]
-            #                 df_viz2_9 = df_viz2_9.mean(axis=0)
-            #                 df_viz2_9.name = "9+"
-            #
-            #                 purch_diff_final = df_viz2[:8].append(df_viz2_9)
-            #
-            #                 st._legacy_dataframe(purch_diff_final.style.format("{:,.2f}"))
-            #
-            #                 chi, pval, dof, exp = chi2_contingency(purch_diff_final.iloc[:, :2])
-            #
-            #                 st.markdown('p-value is {:.5f}'.format(pval))
-            #
-            #                 significance = 0.001
-            #                 p = 1 - significance
-            #                 critical_value = chi2.ppf(p, dof)
-            #
-            #                 st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
-            #
-            #                 if chi > critical_value:
-            #                     st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
-            #                 There is significant difference between actual and model.""" % (significance))
-            #                 else:
-            #                     st.markdown("""At %.3f level of significance, we accept the null hypotheses.
-            #                 There is no significant difference between actual and model.""" % (significance))
-            #
-            #             with tab2:
-            #                 from matplotlib import pyplot as plt
-            #
-            #                 kind = "frequency_cal"
-            #
-            #                 x_labels = {
-            #                     "frequency_cal": "Purchases in calibration period",
-            #                     "recency_cal": "Age of customer at last purchase",
-            #                     "T_cal": "Age of customer at the end of calibration period",
-            #                     "time_since_last_purchase": "Time since user made last purchase",
-            #                 }
-            #
-            #                 summary = ss.df_ch_list[1].copy()
-            #                 duration_holdout = summary.iloc[1]["duration_holdout"]
-            #
-            #                 summary["model_predictions"] = ss.bgf_list[
-            #                     0].conditional_expected_number_of_purchases_up_to_time(
-            #                     duration_holdout, summary["frequency_cal"], summary["recency_cal"], summary["T_cal"])
-            #
-            #                 purch_diff = summary.groupby(kind)[["frequency_holdout", "model_predictions"]].mean().iloc[
-            #                              :]
-            #
-            #                 purch_diff['Difference'] = purch_diff['model_predictions'] - purch_diff['frequency_holdout']
-            #
-            #                 df_viz2 = purch_diff
-            #
-            #                 df_viz2.index.name = "Transaction"
-            #
-            #                 df_viz2_9 = df_viz2[8:]
-            #                 df_viz2_9 = df_viz2_9.mean(axis=0)
-            #                 df_viz2_9.name = "9+"
-            #
-            #                 purch_diff_final = df_viz2[:8].append(df_viz2_9)
-            #
-            #                 st._legacy_dataframe(purch_diff_final.style.format("{:,.2f}"))
-            #
-            #                 chi, pval, dof, exp = chi2_contingency(purch_diff_final.iloc[:, :2])
-            #
-            #                 st.markdown('p-value is {:.5f}'.format(pval))
-            #
-            #                 significance = 0.001
-            #                 p = 1 - significance
-            #                 critical_value = chi2.ppf(p, dof)
-            #
-            #                 st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
-            #
-            #                 if chi > critical_value:
-            #                     st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
-            #                 There is significant difference between actual and model.""" % (significance))
-            #                 else:
-            #                     st.markdown("""At %.3f level of significance, we accept the null hypotheses.
-            #                 There is no significant difference between actual and model.""" % (significance))
-            #
+            with st.container():
+                left_column2, middle_column2, right_column2 = st.columns(3)
+                with left_column2:
+                    with st.expander("Performance Score"):
+                        tab_list = st.tabs(ss.bu_list)
+                        for bu, tab in zip(ss.bu_list, tab_list):
+                            with tab:
+                                st.write("BG/NBD Model Performance:")
+                                st.markdown("* MAE: {0}".format(score_model(bgf_evaluation_list_a[bu],
+                                                                            bgf_evaluation_list_h[bu],
+                                                                            'mae')))
+                                st.markdown("* RMSE: {0}".format(score_model(bgf_evaluation_list_a[bu],
+                                                                            bgf_evaluation_list_h[bu],
+                                                                             'rmse')))
+                                st.write("Gamma-Gamma Model Performance:")
+                                st.markdown("* Pearson correlation: %.3f" % ss.corr_list[bu])
+                                st.markdown("* MAPE of predicted revenues: " + f'{ss.mape_list[bu]:.2f}')
+
+
+                with middle_column2:
+                    with st.expander("Prediction Difference of Customer Count"):
+                        tab_list = st.tabs(ss.bu_list)
+                        for bu, tab in zip(ss.bu_list, tab_list):
+                            with tab:
+                                import matplotlib.pyplot as plt
+
+                                n = ss.bgf_list[bu].data.shape[0]
+                                simulated_data2 = ss.bgf_list[bu].generate_new_data(size=n)
+
+                                model_counts2 = pd.DataFrame(ss.bgf_list[bu].data["frequency"].value_counts().sort_index().iloc[:])
+                                simulated_counts2 = pd.DataFrame(simulated_data2["frequency"].value_counts().sort_index().iloc[:])
+                                combined_counts2 = model_counts2.merge(simulated_counts2, how="outer", left_index=True,
+                                                                         right_index=True).fillna(0)
+                                combined_counts2.columns = ["Actual", "Model"]
+
+                                df_viz1 = combined_counts2
+                                df_viz1['Difference'] = combined_counts2['Actual'] - combined_counts2['Model']
+
+                                df_viz1.index.name = "Transaction"
+
+                                df_viz1_9 = df_viz1[8:]
+                                df_viz1_9 = df_viz1_9.mean(axis=0)
+                                df_viz1_9.name = "9+"
+
+                                combined_counts_final = df_viz1[:8].append(df_viz1_9)
+
+                                st._legacy_dataframe(combined_counts_final.style.format("{:,.0f}"))
+
+                                chi, pval, dof, exp = chi2_contingency(combined_counts_final.iloc[:, :2])
+
+                                significance = 0.001
+                                p = 1 - significance
+                                critical_value = chi2.ppf(p, dof)
+
+                                st.markdown('p-value is {:.5f}'.format(pval))
+                                st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
+                                if chi > critical_value:
+                                    st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
+                                  There is significant difference between actual and model.""" % (significance))
+                                else:
+                                    st.markdown("""At %.3f level of significance, we accept the null hypotheses.
+                                  There is no significant difference between actual and model.""" % (significance))
+
+                with right_column2:
+                    with st.expander("Prediction Difference of Calibration vs Holdout Purchases"):
+                        tab_list = st.tabs(ss.bu_list)
+                        for bu, tab in zip(ss.bu_list, tab_list):
+                            with tab:
+                                kind = "frequency_cal"
+
+                                x_labels = {
+                                    "frequency_cal": "Purchases in calibration period",
+                                    "recency_cal": "Age of customer at last purchase",
+                                    "T_cal": "Age of customer at the end of calibration period",
+                                    "time_since_last_purchase": "Time since user made last purchase",
+                                }
+
+                                summary = ss.df_ch_list[bu].copy()
+                                duration_holdout = summary.iloc[0]["duration_holdout"]
+
+                                summary["model_predictions"] = ss.bgf_list[bu].conditional_expected_number_of_purchases_up_to_time(
+                                    duration_holdout, summary["frequency_cal"], summary["recency_cal"], summary["T_cal"])
+
+                                purch_diff = summary.groupby(kind)[["frequency_holdout", "model_predictions"]].mean().iloc[:]
+
+                                purch_diff['Difference'] = purch_diff['model_predictions'] - purch_diff['frequency_holdout']
+
+                                df_viz2 = purch_diff
+
+                                df_viz2.index.name = "Transaction"
+
+                                df_viz2_9 = df_viz2[8:]
+                                df_viz2_9 = df_viz2_9.mean(axis=0)
+                                df_viz2_9.name = "9+"
+
+                                purch_diff_final = df_viz2[:8].append(df_viz2_9)
+
+                                st._legacy_dataframe(purch_diff_final.style.format("{:,.2f}"))
+
+                                chi, pval, dof, exp = chi2_contingency(purch_diff_final.iloc[:, :2])
+
+                                st.markdown('p-value is {:.5f}'.format(pval))
+
+                                significance = 0.001
+                                p = 1 - significance
+                                critical_value = chi2.ppf(p, dof)
+
+                                st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
+
+                                if chi > critical_value:
+                                    st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
+                                There is significant difference between actual and model.""" % (significance))
+                                else:
+                                    st.markdown("""At %.3f level of significance, we accept the null hypotheses.
+                                There is no significant difference between actual and model.""" % (significance))
+
             with st.expander("Show Result"):
                 if ss.df_rftv_list is not None:
                     # Display full table from the result
@@ -722,36 +626,40 @@ if ss.df0 is not None:
                         df_viz = export_table(df_final, df)
                         ss.df_viz_list[bu] = df_viz
 
-                    # st.dataframe(df_viz.style.format({
-                    #     "CLV": "{:,.2f}",
-                    #     "frequency": "{:,.0f}",
-                    #     "recency": "{:,.0f}",
-                    #     "T": "{:,.0f}",
-                    #     "monetary_value": "{:,.2f}",
-                    #     "predict_purch_90": "{:,.2f}",
-                    #     "predict_purch_180": "{:,.2f}",
-                    #     "predict_purch_270": "{:,.2f}",
-                    #     "predict_purch_360": "{:,.2f}",
-                    #     "prob_alive": "{:,.2f}",
-                    #     "exp_avg_rev": "{:,.2f}",
-                    #     "avg_rev": "{:,.2f}",
-                    #     "error_rev": "{:,.2f}",
-                    # }))
+                    tab_list = st.tabs(ss.bu_list)
+                    for bu, tab in zip(ss.bu_list, tab_list):
+                        with tab:
 
-                    # @st.cache_resource
-                    # def convert_df(df):
-                    #     return df.to_csv().encode('utf-8')
-                    #
-                    # df_csv = convert_df(df_viz)
-                    #
-                    # st.download_button("Press to Download",
-                    #                    df_csv,
-                    #                    "CLV Table.csv",
-                    #                    "text/csv",
-                    #                    key='download-csv-product'
-                    #                    )
-                    #
-                    # # Display full table from the result
-                    # st.write("Result Stats")
-                    #
-                    # st.dataframe(df_viz.describe().style.format("{:,.2f}"))
+                            st.dataframe(ss.df_viz_list[bu].style.format({
+                                "CLV": "{:,.2f}",
+                                "frequency": "{:,.0f}",
+                                "recency": "{:,.0f}",
+                                "T": "{:,.0f}",
+                                "monetary_value": "{:,.2f}",
+                                "predict_purch_90": "{:,.2f}",
+                                "predict_purch_180": "{:,.2f}",
+                                "predict_purch_270": "{:,.2f}",
+                                "predict_purch_360": "{:,.2f}",
+                                "prob_alive": "{:,.2f}",
+                                "exp_avg_rev": "{:,.2f}",
+                                "avg_rev": "{:,.2f}",
+                                "error_rev": "{:,.2f}",
+                            }))
+
+                            @st.cache_resource
+                            def convert_df(df):
+                                return df.to_csv().encode('utf-8')
+
+                            df_csv = convert_df(ss.df_viz_list[bu])
+
+                            st.download_button("Press to Download",
+                                               df_csv,
+                                               "CLV Table.csv",
+                                               "text/csv",
+                                               key='download-csv-product'+ bu
+                                               )
+
+                            # Display full table from the result
+                            st.write("Result Stats")
+
+                            st.dataframe(ss.df_viz_list[bu].describe().style.format("{:,.2f}"))
