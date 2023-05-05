@@ -21,10 +21,12 @@ from lifetimes.plotting import \
 from scipy.stats import chi2_contingency
 from scipy.stats import chi2
 
-sns.set(rc={'image.cmap': 'coolwarm'})
-
 # Page Config
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
+
+sns.set(rc={'image.cmap': 'coolwarm'})
+
+from src.lib.preparation import read_order_intake_csv
 
 col1 = st.sidebar
 col2, col3 = st.columns((2,1))
@@ -124,7 +126,7 @@ with st.expander("App Overview"):
 # App Workflow
 with st.expander("App Workflow"):
     st.markdown("**Workflow**")
-    image = Image.open('CLV_Flowchart.png')
+    image = Image.open('./references/CLV_Flowchart.png')
     st.image(image, caption='Basic Workflow', width=800)
 
 # Side Bar Inputs
@@ -149,12 +151,7 @@ with st.container():
 
 # Data Loading
 if orderintake_file is not None and ss.df0 is None:
-    @st.experimental_memo
-    def read_order_intake_csv():
-        ss.df0 = pd.read_csv(orderintake_file, sep = ",", parse_dates=['order_intake_date'])
-        return ss.df0
-
-    ss.df0 = read_order_intake_csv()
+    ss.df0 = read_order_intake_csv(orderintake_file)
 
 if ss.df0 is not None:
 
@@ -166,16 +163,7 @@ if ss.df0 is not None:
         # Filter to business unit input
         ss.df0 = ss.df0[ss.df0['product_type'].isin(["Product"])]
 
-        def industry_filter(df):
-            if industry_type_selection == "Energy":
-                df = df[df['ec_eu_industry_type_n'].isin(["Energy"])]
-            elif industry_type_selection == "Material":
-                df = df[df['ec_eu_industry_type_n'].isin(["Material"])]
-            elif industry_type_selection == "Life":
-                df = df[df['ec_eu_industry_type_n'].isin(["Life"])]
-            elif industry_type_selection == "All":
-                pass
-            return df
+
 
         ss.bu_list = ["YY113", "YY116", "YY117", "YY119"]
 

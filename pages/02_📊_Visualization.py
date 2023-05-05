@@ -9,13 +9,8 @@ from bokeh.plotting import figure
 from lifetimes.plotting import \
     plot_history_alive
 
-sns.set(rc={'image.cmap': 'coolwarm'})
-
 # Initialization
 ss = st.session_state
-
-# Page Config
-st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 col1 = st.sidebar
 col2, col3 = st.columns((2,1))
