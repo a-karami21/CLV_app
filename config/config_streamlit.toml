@@ -1,0 +1,51 @@
+[app]
+
+app_title = "Customer-Base Analysis App"
+
+app_description = "This app is for analyzing customer-base purchase behavior and future value"
+
+app_overview_definition = """
+**App Functions**
+* Determine high value customers
+* Identify customer inactivity
+* Analyze customer purchase pattern
+* Predict customer lifetime value
+* Predict industry growth
+\n
+**What is Customer Lifetime Value?**
+\n
+Customer lifetime value is the **present value** of the **future\
+(net) cash flows** associated with a particular customer.
+\n
+**What is RFM Metrics?**
+\n
+RFM Metrics are metrics for measuring customer purchase characteristics.
+* **Recency**: the age of the customer at the moment of his last purchase, \
+which is equal to the duration between a customer’s first purchase and their last purchase.
+* **Frequency**: the number of periods in which the customer has made a repeat purchase.
+* **T**: the age of the customer at the end of the period under study, \
+which is equal to the duration between a customer’s first purchase and the last day in the dataset.
+* **Monetary**: the customer's average transaction value (order intake).
+"""
+
+app_overview_guide = """
+**User Guide**
+1. Upload the provided dataset* on the sidebar.
+2. Select **[Business Unit]** and **[Industry Type]** to be trained.
+3. Select desired **[Interest Rate]** and **[Lifetime (Months)]** you wish to predict.
+4. Check the **Train Model** checkbox.
+5. Open the **[Performance Score]** box to see model performance.
+* **MAE** is the average error of the predicted model
+* **RMSE** is the root average error of the predicted model
+* **Chi-Square test** is a test to identify if there are significant difference between model and actual data.
+* **Pearson Correlation** is the correlation between frequency and monetary. \
+The closer to zero the more appropriate the data for the model because 
+model assumes there are no dependency between frequency and monetary
+* **MAPE** is the average percentage error of the prediction.\
+is used to calculate error between predicted and actual average transaction value
+6. You can view or download the model **results & stats**.
+7. Go to **[Visualization]** page in sidebar for visualization.
+8. Input your desired **filters** in sidebar.
+"""
+
+app_workflow_image = './references/CLV_Flowchart.png'

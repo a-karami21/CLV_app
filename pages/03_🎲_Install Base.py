@@ -7,7 +7,7 @@ col2, col3 = st.columns((2,1))
 # Overview Section
 
 # Main Panel Title
-st.title('Install Base Matrix')
+st.title('Install Base App')
 st.write("This page shows customers and its install bases")
 
 with st.container():
@@ -19,7 +19,7 @@ with st.container():
             install_base_file = st.file_uploader('Upload the install base data')
 
 if install_base_file is not None:
-    @st.experimental_memo
+    @st.cache_data
     def read_install_base_csv():
         install_base = pd.read_csv(install_base_file, sep = ",")
         return install_base

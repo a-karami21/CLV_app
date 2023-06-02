@@ -1,4 +1,5 @@
 import streamlit as st
+import configparser
 
 from PIL import Image
 
@@ -11,6 +12,7 @@ from scipy.stats import chi2
 
 from src.lib.preparations import *
 from src.lib.visualizations import *
+from src.lib.util import *
 
 ## Streamlit Setup
 # Page Config
@@ -22,6 +24,10 @@ col1 = st.sidebar
 col2, col3 = st.columns((2,1))
 
 # Initialization
+
+# Load config
+config = load_config("config_streamlit.toml")
+
 ss = st.session_state
 
 # initialize session state variable for modelling
@@ -58,11 +64,13 @@ if "prob_alive_input" not in ss:
 if "expected_lifetime" not in ss:
     ss.expected_lifetime = None
 
-
 # App Title & Description
 with st.container():
-    st.title('Customer-Base Analysis App')
-    st.write("This app is for analyzing customer-base purchase behavior and future value")
+    app_title = config["app"]["app_title"]
+    st.title(app_title)
+
+    app_description = config["app"]["app_description"]
+    st.markdown(app_description)
 
 # Overview Section
 st.header("1. Overview")
@@ -72,55 +80,19 @@ with st.expander("App Overview"):
     left_column, right_column = st.columns(2)
     # App Explanation
     with left_column:
-        st.markdown("**App Explanation**")
-        st.markdown("* Determine high value customers")
-        st.markdown("* Identify customer inactivity")
-        st.markdown("* Analyze customer purchase behavior")
-        st.markdown("* Predict customer lifetime value")
-        st.markdown("* Predict industry growth")
-        st.markdown("")
-
-        st.markdown("**What is Customer Lifetime Value?**")
-        st.markdown("Customer lifetime value is the **present value**"
-                    " of the **future (net) cash flows** associated with a particular customer.")
-
-        st.markdown("**What is RFM Metrics?**")
-        st.markdown("RFM Metrics are metrics for measuring customer purchase characteristics.")
-        st.markdown("* **Recency**: the age of the customer at the moment of his last purchase, "
-                    "which is equal to the duration between a customer’s first purchase and their last purchase.")
-        st.markdown("* **Frequency**: the number of periods in which the customer has made a repeat purchase.")
-        st.markdown("* **T**: the age of the customer at the end of the period under study, "
-                    "which is equal to the duration between a customer’s first purchase and the last day in the dataset.")
-        st.markdown("* **Monetary**: the customer's average transaction value (order intake).")
+        app_overview_definition = config["app"]["app_overview_definition"]
+        st.markdown(app_overview_definition)
 
     # App User Guide
     with right_column:
-        st.markdown("**User Guide**")
-        st.markdown("1. Upload the provided dataset* on the sidebar.")
-        st.markdown("2. Select **[Business Unit]** and **[Industry Type]** to be trained.")
-        st.markdown("3. Select desired **[Interest Rate]** and **[Lifetime (Months)]** you wish to predict.")
-        st.markdown("4. Check the **Train Model** checkbox.")
-        st.markdown("5. Open the **[Performance Score]** box to see model performance.")
-        st.markdown("* **MAE** is the average error of the predicted model")
-        st.markdown("Example: MAE value of 1 means the prediction is off by 1 transaction on average")
-        st.markdown("* **RMSE** is the root average error of the predicted model similar to stdev")
-        st.markdown("Example: High RMSE value means the prediction error has a high variance")
-        st.markdown("* **Chi-Square test** is a test to identify if there are significant difference"
-                    "between model and actual data.")
-        st.markdown("* **Pearson Correlation** is the correlation between frequency and monetary.")
-        st.markdown("The closer to zero the more appropriate the data for the model because"
-                    " model assumes there are no dependency between frequency and monetary")
-        st.markdown("* **MAPE** is the average percentage error of the prediction.")
-        st.markdown("is used to calculate error between predicted and actual average transaction value")
-        st.markdown("6. You can view or download the model **results & stats**.")
-        st.markdown("7. Go to **[Visualization]** page in sidebar for visualization.")
-        st.markdown("8. Input your desired **filters** in sidebar.")
-        st.markdown("")
+        app_overview_guide = config["app"]["app_overview_guide"]
+        st.markdown(app_overview_guide)
 
 # App Workflow
 with st.expander("App Workflow"):
     st.markdown("**Workflow**")
-    image = Image.open('./references/CLV_Flowchart.png')
+    app_workflow_image = config["app"]["app_workflow_image"]
+    image = Image.open(app_workflow_image)
     st.image(image, caption='Basic Workflow', width=800)
 
 # Side Bar Inputs
