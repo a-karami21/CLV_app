@@ -17,7 +17,7 @@ def get_project_root() -> str:
     """
     return str(Path(__file__).parent.parent.parent)
 
-@st.cache(allow_output_mutation=True, ttl=300)
+@st.cache_data(ttl=300)
 def load_config(config_streamlit_filename):
 
     config_streamlit = toml.load(Path(get_project_root()) / f"config/{config_streamlit_filename}")

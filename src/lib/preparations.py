@@ -11,8 +11,8 @@ from lifetimes.utils import \
     summary_data_from_transaction_data
 
 @st.cache_data
-def read_order_intake_csv(orderintake_file):
-    df0 = pd.read_csv(orderintake_file, sep=",", parse_dates=['order_intake_date'])
+def read_order_intake_csv(dataset_file):
+    df0 = pd.read_csv(dataset_file, sep=";")
     return df0
 
 def industry_filter(industry_type_selection, df):

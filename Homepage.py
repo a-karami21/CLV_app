@@ -33,6 +33,8 @@ ss = st.session_state
 # initialize session state variable for modelling
 if "df0" not in ss:
     ss.df0 = None
+if "ss.df_columns" not in ss:
+    ss.df_columns = None
 if "bu_list" not in ss:
     ss.bu_list = None
 if "df_list" not in ss:
@@ -55,6 +57,10 @@ if "df_viz_list" not in ss:
     ss.df_viz_list = None
 
 # initialize session state variable for user input
+if "selected_columns_dict" not in ss:
+    ss.selected_columns_dict = None
+if "attribute_is_valid" not in ss:
+    ss.attribute_is_valid = None
 if "customer_id_input" not in ss:
     ss.customer_id_input = None
 if "customer_name_input" not in ss:
@@ -71,6 +77,87 @@ with st.container():
 
     app_description = config["app"]["app_description"]
     st.markdown(app_description)
+
+# Sidebar Title
+
+# Side Bar: Data Upload
+col1.header("1. Data")
+with col1.expander("Dataset", expanded=True):
+    # Uploader
+    dataset_file = st.file_uploader('Upload the order intake data')
+
+
+# Data Loading
+if dataset_file is not None and ss.df0 is None:
+    ss.df0 = read_order_intake_csv(dataset_file)
+
+
+# Side Bar User Options
+if ss.df0 is not None:
+
+    with col1.container():
+        # Setup
+        col1.header("2. Setup")
+        with col1.expander("Attribute Selection"):
+            # Get Columns from Dataframe
+            ss.df_columns = ss.df0.columns.tolist()
+            ss.df_columns.insert(0, "Not Selected")
+
+            with st.form("Attribute Selection"):
+                df_date_column = st.selectbox("Select Date Attribute", ss.df_columns, key="Date")
+                df_product_category_column = st.selectbox("Select Product Attribute", ss.df_columns, key="Product")
+                df_customer_code_column = st.selectbox("Select Customer Code Attribute", ss.df_columns, key="Customer Code")
+                df_customer_name_column = st.selectbox("Select Customer Name Attribute", ss.df_columns, key="Customer Name")
+                df_industry_column = st.selectbox("Select Industry Attribute", ss.df_columns, key="Industry")
+                df_monetary_column = st.selectbox("Select Monetary Attribute", ss.df_columns, key="Monetary")
+
+                submitted = st.form_submit_button("Submit")
+                ss.selected_columns_dict = {"Date": df_date_column,
+                                         "Product": df_product_category_column,
+                                         "Customer Code": df_customer_code_column,
+                                         "Customer Name": df_customer_name_column,
+                                         "Industry": df_industry_column,
+                                         "Monetary": df_monetary_column}
+
+                if submitted:
+                    for key, value in ss.selected_columns_dict.items():
+                        if value == "Not Selected":
+                            st.write(f"Please select the {key} attributes")
+                            ss.attribute_is_valid = False
+                            break
+                        else:
+                            ss.attribute_is_valid = True
+
+    # Prediction Inputs
+    if ss.attribute_is_valid:
+        col1.header("3. Prediction Inputs")
+        with col1.expander("User Inputs"):
+
+            # Sidebar Industry Options
+            industry_options = ss.df0[ss.selected_columns_dict["Industry"]].unique()
+            industry_options = np.insert(industry_options, 0, "All")
+            industry_selection = st.selectbox('Select industries to be trained on', industry_options, index=2)
+
+            # Predict Purchase Range Number
+            annual_discount_rate = st.number_input("Input Annual Interest Rate (Default is 6%)",
+                                                   min_value=0.01,
+                                                   max_value=0.25,
+                                                   value=0.06)
+
+            expected_lifetime = st.slider("Select prediction lifetime (Months)",
+                                          min_value=12,
+                                          max_value=120,
+                                          step=12)
+
+            ss.expected_lifetime = expected_lifetime
+
+        # # Dashboard Filters
+        # col1.header("3. Dashboard Filters")
+        # with col1.expander("Select Filter"):
+        #     industry_type_cust = st.selectbox("Select Industry Type for Top 20 Customers", industry_options)
+        #
+        #     p_alive_slider = st.slider("Probability alive lower than X %", 10, 100, 80)
+        #     ss.prob_alive_input = float(p_alive_slider / 100)
 
 # Overview Section
 st.header("1. Overview")
@@ -95,45 +182,22 @@ with st.expander("App Workflow"):
     image = Image.open(app_workflow_image)
     st.image(image, caption='Basic Workflow', width=800)
 
-# Side Bar Inputs
-with col1.container():
-    # Sidebar Title
-    col1.header("1. Data")
-    with col1.expander("Dataset", expanded=True):
-        # Uploader
-        orderintake_file = st.file_uploader('Upload the order intake data')
-
-        # Sidebar Industry Options
-        industry_type_selection = st.selectbox('Select industry type', ('Energy', 'Material', 'Life', 'All'), index=3)
-
-    col1.header("2. Prediction Inputs")
-    with col1.expander("User Inputs"):
-        # Predict Purchase Range Number
-        annual_discount_rate = st.number_input("Input Annual Interest Rate (Default is 6%)", 0.01, 0.25, value=0.06)
-        expected_lifetime = st.slider("Select prediction lifetime (Months)", 12, 120, step=12)
-
-        ss.expected_lifetime = expected_lifetime
-
-# Data Loading
-if orderintake_file is not None and ss.df0 is None:
-    ss.df0 = read_order_intake_csv(orderintake_file)
-
-if ss.df0 is not None:
+# if ss.df0 is not None:
     # Show Data Info
-    with st.container():
-        # treat CustomerID as a categorical variable
-        ss.df0["ec_eu_customer"] = ss.df0["ec_eu_customer"].astype(np.int64).astype(object)
-
-        # Filter to business unit input
-        ss.df0 = ss.df0[ss.df0['product_type'].isin(["Product"])]
-        ss.df0 = industry_filter(industry_type_selection, ss.df0)
-
-        ss.bu_list = ["YY113", "YY116", "YY117", "YY119"]
-
-        ss.df_list = {}
-        for bu in ss.bu_list:
-            df_bu = ss.df0[ss.df0['BU'].isin([bu])]
-            ss.df_list[bu] = df_bu
+    # with st.container():
+    #     # treat CustomerID as a categorical variable
+    #     ss.df0["ec_eu_customer"] = ss.df0["ec_eu_customer"].astype(np.int64).astype(object)
+    #
+    #     # Filter to business unit input
+    #     ss.df0 = ss.df0[ss.df0['product_type'].isin(["Product"])]
+    #     ss.df0 = industry_filter(industry_type_selection, ss.df0)
+    #
+    #     ss.bu_list = ["YY113", "YY116", "YY117", "YY119"]
+    #
+    #     ss.df_list = {}
+    #     for bu in ss.bu_list:
+    #         df_bu = ss.df0[ss.df0['BU'].isin([bu])]
+    #         ss.df_list[bu] = df_bu
 
     # Model Evaluation Section
     st.header("2. Model Evaluation")
