@@ -457,7 +457,7 @@ if ss.df_viz_list is not None:
     st.header("3. Visualization")
 
     # RFM Spread Visualization
-    with st.expander("RFM Stats"):
+    with st.expander("RFM Stats", expanded=True):
         st.write("RFM Spread Visualization")
         tab_list = st.tabs(ss.product_list)
         for product, tab in zip(ss.product_list, tab_list):
@@ -493,64 +493,144 @@ if ss.df_viz_list is not None:
                     st.pyplot(fig6.figure)
 
     # Customer Behavior Simulation
-    # with st.expander("Customer P(Alive) History Plot"):
-    #     tab_list = st.tabs(ss.product_list)
-    #     for product, tab in zip(ss.product_list, tab_list):
-    #         with tab:
-    #             with st.container():
-    #                 # Customer Selection
-    #                 customer_name_list = ss.df_viz_list[product]['Customer_Name']
-    #                 ss.customer_selection = st.selectbox("Select customer ID to see its purchase behavior", customer_name_list)
-    #
-    #                 ss.selected_customer_id = ss.df_viz_list[product].loc[ss.df_viz_list[product].Customer_Name == ss.customer_selection, 'Customer_ID'].values[0]
-    #
-    #                 # P Alive History
-    #                 selected_customer_name = ss.df_list[product][ss.df_list[product]["Customer_ID"] == ss.selected_customer_id]
-    #
-    #                 # selected customer: cumulative transactions
-    #                 max_date = ss.df_list[product]["Date"].max()
-    #                 min_date = ss.df_list[product]["Date"].min()
-    #                 span_days = (max_date - min_date).days
-    #
-    #                 # history of the selected customer: probability over time of being alive
-    #                 st.write(ss.customer_name_input)
-    #                 plt.figure(figsize=(20, 4))
-    #                 fig7 = plot_history_alive(model=ss.bgf_full_list[product],
-    #                                           t=span_days,
-    #                                           transactions=selected_customer_name,
-    #                                           datetime_col="Monetary Value"
-    #                                           )
-    #
-    #                 st.pyplot(fig7.figure)
-    #
-    #             # RFM & Last purchase date
-    #             with st.container():
-    #                 profile_col1, profile_col2, profile_col3, profile_col4, profile_col5, profile_col6 = st.columns(
-    #                     6)
-    #
-    #                 df_rfm_customer = ss.df_viz_list[product][ss.df_viz_list[product]["Customer ID"] == ss.customer_selection_id]
-    #
-    #                 with profile_col1:
-    #                     st.markdown("**Recency**")
-    #                     customer_recency = math.ceil((df_rfm_customer.iloc[0]['recency']) / 30)
-    #                     st.markdown(str(customer_recency) + " Lifetime Length")
-    #                 with profile_col2:
-    #                     st.markdown("**Frequency**")
-    #                     customer_frequency = math.ceil(df_rfm_customer.iloc[0]['frequency'])
-    #                     st.markdown(str(customer_frequency) + " Active Days")
-    #                 with profile_col3:
-    #                     st.markdown("**Monetary**")
-    #                     customer_monetary = math.ceil(df_rfm_customer.iloc[0]['monetary_value'])
-    #                     st.markdown("$ " + f'{customer_monetary:,}' + " Average Purchase Value")
-    #                 with profile_col4:
-    #                     st.markdown("**Last Purchase Date**")
-    #                     cust_last_purchase_date = max_date.date()
-    #                     st.markdown(cust_last_purchase_date)
-    #                 with profile_col5:
-    #                     st.markdown("**Predicted Purchase**")
-    #                     customer_purchase = math.ceil(df_rfm_customer.iloc[0]['predict_purch_360'])
-    #                     st.markdown(str(customer_purchase) + " Purchases")
-    #                 with profile_col6:
-    #                     st.markdown("**CLV**")
-    #                     customer_CLV = math.ceil(df_rfm_customer.iloc[0]['CLV'])
-    #                     st.markdown("$ " + f'{customer_CLV:,}')
+    with st.expander("Customer P(Alive) History Plot", expanded=True):
+        tab_list = st.tabs(ss.product_list)
+        for product, tab in zip(ss.product_list, tab_list):
+            with tab:
+                with st.container():
+                    # Customer Selection
+                    customer_name_list = ss.df_viz_list[product]['Customer_Name']
+                    customer_selection = st.selectbox("Select customer ID to see its purchase behavior", customer_name_list)
+                    selected_customer_id = ss.df_viz_list[product].loc[
+                        ss.df_viz_list[product]["Customer_Name"] == customer_selection, 'Customer_ID'].values[0]
+
+                    # P Alive History
+                    selected_customer_name = ss.df_list[product][ss.df_list[product]["Customer_ID"] == selected_customer_id]
+
+                    # selected customer: cumulative transactions
+                    max_date = ss.df_list[product]["Date"].max()
+                    min_date = ss.df_list[product]["Date"].min()
+                    span_days = (max_date - min_date).days
+
+                    # history of the selected customer: probability over time of being alive
+                    plt.figure(figsize=(20, 4))
+                    fig7 = plot_history_alive(model=ss.bgf_full_list[product],
+                                              t=span_days,
+                                              transactions=selected_customer_name,
+                                              datetime_col="Date"
+                                              )
+
+                    st.pyplot(fig7.figure)
+
+                # RFM & Last purchase date
+                with st.container():
+                    profile_col1, profile_col2, profile_col3, profile_col4, profile_col5, profile_col6 = st.columns(
+                        6)
+
+                    df_rfm_customer = ss.df_viz_list[product][ss.df_viz_list[product]["Customer_ID"] == selected_customer_id]
+
+                    with profile_col1:
+                        st.markdown("**Recency**")
+                        customer_recency = math.ceil((df_rfm_customer.iloc[0]['recency']) / 30)
+                        st.markdown(str(customer_recency) + " Lifetime Length")
+                    with profile_col2:
+                        st.markdown("**Frequency**")
+                        customer_frequency = math.ceil(df_rfm_customer.iloc[0]['frequency'])
+                        st.markdown(str(customer_frequency) + " Active Days")
+                    with profile_col3:
+                        st.markdown("**Monetary**")
+                        customer_monetary = math.ceil(df_rfm_customer.iloc[0]['monetary_value'])
+                        st.markdown("$ " + f'{customer_monetary:,}' + " Average Purchase Value")
+                    with profile_col4:
+                        st.markdown("**Last Purchase Date**")
+                        cust_last_purchase_date = max_date.date()
+                        st.markdown(cust_last_purchase_date)
+                    with profile_col5:
+                        st.markdown("**Predicted Purchase**")
+                        customer_purchase = math.ceil(df_rfm_customer.iloc[0]['predict_purch_360'])
+                        st.markdown(str(customer_purchase) + " Purchases")
+                    with profile_col6:
+                        st.markdown("**CLV**")
+                        customer_CLV = math.ceil(df_rfm_customer.iloc[0]['CLV'])
+                        st.markdown("$ " + f'{customer_CLV:,}')
+
+    # Top Customers
+    with st.expander("Top 20 Customers by CLV", expanded=True):
+        tab_list = st.tabs(ss.product_list)
+        for product, tab in zip(ss.product_list, tab_list):
+            with tab:
+
+                if industry_type_cust == "All":
+                    df_plot = ss.df_viz_list[product]
+                else:
+                    df_plot = ss.df_viz_list[product][ss.df_viz_list[product]['Industry'].isin([industry_type_cust])]
+
+                left_column, right_column = st.columns(2)
+                with left_column:
+                    st.markdown("Top 20 Customers by CLV")
+
+                    df_plot = df_plot[:20].reset_index()
+                    y = df_plot['Customer_Name']
+                    x = df_plot['CLV'] / 1000
+
+                    graph = figure(y_range=list(reversed(y)),
+                                   plot_height=500,
+                                   toolbar_location=None
+                                   )
+
+                    graph.hbar(y=y, right=x, height=0.5, fill_color="#ffcc66", line_color="black")
+
+                    graph.xaxis.axis_label = "CLV (K USD)"
+
+                    st.bokeh_chart(graph)
+
+    # Industry Segment
+    with st.expander("Industry Segment Visualization", expanded=True):
+        tab_list = st.tabs(ss.product_list)
+        for product, tab in zip(ss.product_list, tab_list):
+            with tab:
+                st.subheader("Industry Type & Segment CLV")
+                left_column, right_column = st.columns((2,1))
+
+                df_industry_viz = ss.df_viz_list[product].groupby(['Industry','Industry_Segment'])['CLV'].sum().sort_values(
+                                                    ascending=False).reset_index()
+
+                # Industry Segment Treemap
+                with left_column:
+                    st.markdown("Industry Segment Treemap")
+
+                    fig = px.treemap(df_industry_viz,
+                                     path = [px.Constant('All'), 'Industry', 'Industry_Segment'],
+                                     values = 'CLV',
+                                     width = 760,
+                                     height = 400)
+
+                    fig.update_traces(textinfo="label+percent root+percent parent")
+
+                    fig.update_layout(
+                        treemapcolorway= ["orange", "darkblue", "green"],
+                        margin = dict(t=0, l=0, r=0, b=0)
+                    )
+
+                    st.plotly_chart(fig)
+
+                # Top 10 Industry Segment
+                with right_column:
+
+                    df_industry_viz = df_industry_viz[:10].reset_index()
+
+                    st.markdown("Top 10 Industry Segment")
+                    y = df_industry_viz['Industry_Segment']
+                    x = df_industry_viz['CLV'] / 1000
+
+                    graph3 = figure(y_range=list(reversed(y)),
+                                    toolbar_location=None,
+                                    plot_height=400,
+                                    plot_width=400,
+                                    )
+
+                    graph3.hbar(y=y, right=x, height=0.5 ,fill_color="#ff9966", line_color="black")
+
+                    graph3.xaxis.axis_label = "CLV (K USD)"
+
+                    st.bokeh_chart(graph3)

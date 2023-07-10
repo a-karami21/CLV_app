@@ -96,15 +96,16 @@ def export_table(df_rftv, df):
 
     df_final = df_final.reset_index().merge(df[["Customer_ID",
                                                 "Customer_Name",
-                                                "Industry"]],
+                                                "Industry",
+                                                "Industry_Segment"]],
                                             how="left").set_index('Customer_ID')
 
-    order = ['Customer_Name', 'Industry', 'CLV', 'frequency', 'recency', 'T', 'monetary_value',
+    order = ['Customer_Name', 'Industry','Industry_Segment', 'CLV', 'frequency', 'recency', 'T', 'monetary_value',
              'predict_purch_90', 'predict_purch_180', 'predict_purch_270', 'predict_purch_360',
              'prob_alive', 'exp_avg_rev', 'avg_rev', 'error_rev']
 
     df_final = df_final[order]
-    df_final = df_final.drop_duplicates()
+    df_final = df_final.drop_duplicates().reset_index()
 
     return df_final
 
