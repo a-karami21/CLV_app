@@ -94,12 +94,12 @@ def chi_square_test_cal_vs_hol(df_ch_list, bgf_list, bu):
 def export_table(df_rftv, df):
     df_final = df_rftv
 
-    df_final = df_final.reset_index().merge(df[["Customer ID",
-                                                "Customer Name",
+    df_final = df_final.reset_index().merge(df[["Customer_ID",
+                                                "Customer_Name",
                                                 "Industry"]],
-                                            how="left").set_index('Customer ID')
+                                            how="left").set_index('Customer_ID')
 
-    order = ['Customer Name', 'Industry', 'CLV', 'frequency', 'recency', 'T', 'monetary_value',
+    order = ['Customer_Name', 'Industry', 'CLV', 'frequency', 'recency', 'T', 'monetary_value',
              'predict_purch_90', 'predict_purch_180', 'predict_purch_270', 'predict_purch_360',
              'prob_alive', 'exp_avg_rev', 'avg_rev', 'error_rev']
 

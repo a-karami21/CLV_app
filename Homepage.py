@@ -1,11 +1,20 @@
 import streamlit as st
 import configparser
 
-from PIL import Image
+import matplotlib.pyplot as plt
+import seaborn as sns
+import streamlit as st
+import plotly.express as px
+import math
+from bokeh.plotting import figure
+
 
 from lifetimes.plotting import \
     plot_period_transactions, \
-    plot_calibration_purchases_vs_holdout_purchases
+    plot_calibration_purchases_vs_holdout_purchases, \
+    plot_history_alive
+
+from PIL import Image
 
 from scipy.stats import chi2_contingency
 from scipy.stats import chi2
@@ -98,27 +107,26 @@ if ss.df0 is not None:
         ss.df_columns.insert(0, "Not Selected")
 
         with st.form("Attribute Selection"):
-            df_date_column = st.selectbox("Select Date Attribute", ss.df_columns, key="Date")
-            df_product_category_column = st.selectbox("Select Product Attribute", ss.df_columns, key="Product")
-            df_customer_id_column = st.selectbox("Select Customer ID Attribute", ss.df_columns, key="Customer ID")
-            df_customer_name_column = st.selectbox("Select Customer Name Attribute", ss.df_columns, key="Customer Name")
-            df_industry_column = st.selectbox("Select Industry Attribute", ss.df_columns, key="Industry")
-            df_monetary_column = st.selectbox("Select Monetary Attribute", ss.df_columns, key="Monetary Value")
+            df_date_col = st.selectbox("Select Date Attribute", ss.df_columns, key="Date")
+            df_product_category_col = st.selectbox("Select Product Attribute", ss.df_columns, key="Product")
+            df_customer_id_col = st.selectbox("Select Customer ID Attribute", ss.df_columns, key="Customer_ID")
+            df_customer_name_col = st.selectbox("Select Customer Name Attribute", ss.df_columns, key="Customer_Name")
+            df_industry_col = st.selectbox("Select Industry Attribute", ss.df_columns, key="Industry")
+            df_transaction_value_col = st.selectbox("Select Monetary Attribute", ss.df_columns, key="Transaction_Value")
 
             submitted = st.form_submit_button("Submit")
 
             # Snapshot the selected attributes in a dictionary
-            ss.selected_columns_dict = {"Date": df_date_column,
-                                     "Product": df_product_category_column,
-                                     "Customer ID": df_customer_id_column,
-                                     "Customer Name": df_customer_name_column,
-                                     "Industry": df_industry_column,
-                                     "Monetary Value": df_monetary_column}
+            ss.selected_columns_dict = {"Date": df_date_col,
+                                     "Product": df_product_category_col,
+                                     "Customer_ID": df_customer_id_col,
+                                     "Customer_Name": df_customer_name_col,
+                                     "Industry": df_industry_col,
+                                     "Transaction_Value": df_transaction_value_col}
 
             if submitted:
                 for key, value in ss.selected_columns_dict.items():
                     if value == "Not Selected":
-                        not_selected_list = []
                         st.write(f"Please select the {key} attributes")
                         ss.attribute_is_valid = False
                         break
@@ -204,13 +212,13 @@ if ss.df0 is not None and ss.attribute_is_valid:
             ss.df0 = ss.df0["Industry"].isin([industry_selection])
 
         # Treat CustomerID as a categorical variable
-        ss.df0["Customer ID"].astype(np.int64).astype(object)
+        ss.df0["Customer_ID"].astype(np.int64).astype(object)
 
         # Convert Date Column to Datetime Format
         ss.df0["Date"] = pd.to_datetime(ss.df0["Date"])
 
-        # Convert Monetary Value Column to Numeric Format
-        ss.df0["Monetary Value"] = pd.to_numeric(ss.df0["Monetary Value"])
+        # Convert Transaction Value Column to Numeric Format
+        ss.df0["Transaction_Value"] = pd.to_numeric(ss.df0["Transaction_Value"])
 
         # Create Dictionary for Each Product Category & Its Dataframe
         ss.product_list = ss.df0["Product"].unique().tolist()
@@ -315,127 +323,234 @@ if ss.df0 is not None and ss.attribute_is_valid:
                 df_rftv_new2 = compute_clv(df_rftv, ggf, bgf, annual_discount_rate, ss.expected_lifetime)
                 ss.df_rftv_list[bu] = df_rftv_new2
 
-            ## Model Evaluation Visualization
+    # Model Evaluation Visualization
+    with st.expander("Model Evaluation Result"):
+        st.write("Training BG/NBD Model: does the model reflect the actual data closely enough?")
+        tab_list = st.tabs(ss.product_list)
+        for bu, tab in zip(ss.product_list, tab_list):
+            with tab:
+                # Predicted vs Actual (Train-Test) Graph Container
+                with st.container():
+                    left_column, right_column = st.columns(2)
 
-            with st.expander("Model Evaluation Result"):
-                st.write("Training BG/NBD Model: does the model reflect the actual data closely enough?")
-                tab_list = st.tabs(ss.product_list)
-                for bu, tab in zip(ss.product_list, tab_list):
-                    with tab:
-                        # Predicted vs Actual (Train-Test) Graph Container
+                    # Predicted vs Actual Chart By Number of Customer
+                    with left_column:
+                        fig1 = eva_viz1(ss.bgf_list[bu])
+                        st.pyplot(fig1.figure)
+
+                    # Predicted vs Actual By Holdout & Calibration Data Purchases
+                    with right_column:
+                        fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_list[bu],ss.df_ch_list[bu], n=9)
+                        st.pyplot(fig2.figure)
+
+                # UI Divider
+                st.divider()
+
+                # Model Performance Metrics
+                with st.container():
+                    left_column, middle_column, right_column = st.columns(3)
+
+                    # RMSE, MAE, Pearson Correlation, MAPE
+                    with left_column:
                         with st.container():
-                            left_column, right_column = st.columns(2)
+                            st.write("BG/NBD Model Performance:")
+                            st.markdown("* MAE: {0}".format(score_model(bgf_eval_list_predicted[bu],
+                                                                        bgf_eval_list_actual[bu],
+                                                                        'mae')))
+                            st.markdown("* RMSE: {0}".format(score_model(bgf_eval_list_predicted[bu],
+                                                                        bgf_eval_list_actual[bu],
+                                                                         'rmse')))
+                            st.write("Gamma-Gamma Model Performance:")
+                            st.markdown("* Pearson correlation: %.3f" % ss.corr_list[bu])
+                            st.markdown("* MAPE of predicted revenues: " + f'{ss.mape_list[bu]:.2f}')
 
-                            # Predicted vs Actual Chart By Number of Customer
-                            with left_column:
-                                fig1 = eva_viz1(ss.bgf_list[bu])
-                                st.pyplot(fig1.figure)
-
-                            # Predicted vs Actual By Holdout & Calibration Data Purchases
-                            with right_column:
-                                fig2 = plot_calibration_purchases_vs_holdout_purchases(ss.bgf_list[bu],
-                                                                                       ss.df_ch_list[bu], n=9)
-                                st.pyplot(fig2.figure)
-
-                        st.divider()
-
-                        # Model Performance Metrics
+                    # Chi-Square Test (Customer Count)
+                    with middle_column:
                         with st.container():
-                            left_column, middle_column, right_column = st.columns(3)
+                            st.write("Prediction Difference of Customer Count")
 
-                            # RMSE, MAE, Pearson Correlation, MAPE
-                            with left_column:
-                                with st.container():
-                                    st.write("BG/NBD Model Performance:")
-                                    st.markdown("* MAE: {0}".format(score_model(bgf_eval_list_predicted[bu],
-                                                                                bgf_eval_list_actual[bu],
-                                                                                'mae')))
-                                    st.markdown("* RMSE: {0}".format(score_model(bgf_eval_list_predicted[bu],
-                                                                                bgf_eval_list_actual[bu],
-                                                                                 'rmse')))
-                                    st.write("Gamma-Gamma Model Performance:")
-                                    st.markdown("* Pearson correlation: %.3f" % ss.corr_list[bu])
-                                    st.markdown("* MAPE of predicted revenues: " + f'{ss.mape_list[bu]:.2f}')
+                            df_chi_square_test_customer_count, chi, pval,\
+                            dof, exp, significance, critical_value = chi_square_test_customer_count(bu, ss.bgf_list)
 
-                            # Chi-Square Test (Customer Count)
-                            with middle_column:
-                                with st.container():
-                                    st.write("Prediction Difference of Customer Count")
+                            st._legacy_dataframe(df_chi_square_test_customer_count.style.format("{:,.0f}"))
 
-                                    df_chi_square_test_customer_count, chi, pval,\
-                                    dof, exp, significance, critical_value = chi_square_test_customer_count(bu, ss.bgf_list)
+                            st.markdown('p-value is {:.5f}'.format(pval))
+                            st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
+                            if chi > critical_value:
+                                st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
+                              There is significant difference between actual and model.""" % (significance))
+                            else:
+                                st.markdown("""At %.3f level of significance, we accept the null hypotheses.
+                              There is no significant difference between actual and model.""" % (significance))
 
-                                    st._legacy_dataframe(df_chi_square_test_customer_count.style.format("{:,.0f}"))
+                    # Chi-Square Test (Holdout vs Calibration Purchases)
+                    with right_column:
+                        with st.container():
+                            st.write("Prediction Difference of Calibration vs Holdout Purchases")
 
-                                    st.markdown('p-value is {:.5f}'.format(pval))
-                                    st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
-                                    if chi > critical_value:
-                                        st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
-                                      There is significant difference between actual and model.""" % (significance))
-                                    else:
-                                        st.markdown("""At %.3f level of significance, we accept the null hypotheses.
-                                      There is no significant difference between actual and model.""" % (significance))
+                            df_chi_square_test_cal_vs_hol, chi, pval, \
+                            dof, exp, significance, critical_value = chi_square_test_cal_vs_hol(ss.df_ch_list, ss.bgf_list, bu)
 
-                            # Chi-Square Test (Holdout vs Calibration Purchases)
-                            with right_column:
-                                with st.container():
-                                    st.write("Prediction Difference of Calibration vs Holdout Purchases")
+                            st._legacy_dataframe(df_chi_square_test_cal_vs_hol.style.format("{:,.2f}"))
 
-                                    df_chi_square_test_cal_vs_hol, chi, pval, \
-                                    dof, exp, significance, critical_value = chi_square_test_cal_vs_hol(ss.df_ch_list, ss.bgf_list, bu)
+                            st.markdown('p-value is {:.5f}'.format(pval))
+                            st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
 
-                                    st._legacy_dataframe(df_chi_square_test_cal_vs_hol.style.format("{:,.2f}"))
+                            if chi > critical_value:
+                                st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
+                            There is significant difference between actual and model.""" % (significance))
+                            else:
+                                st.markdown("""At %.3f level of significance, we accept the null hypotheses.
+                            There is no significant difference between actual and model.""" % (significance))
 
-                                    st.markdown('p-value is {:.5f}'.format(pval))
-                                    st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
+    # Model Result (Table)
+    with st.expander("Show Result"):
+        if ss.df_rftv_list is not None:
+            # Combining Model Result & Customer Identities
+            ss.df_viz_list = {}
+            for (bu, df_final), (bu, df) in zip(ss.df_rftv_list.items(), ss.df_list.items()):
+                df_viz = export_table(df_final, df)
+                ss.df_viz_list[bu] = df_viz
 
-                                    if chi > critical_value:
-                                        st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
-                                    There is significant difference between actual and model.""" % (significance))
-                                    else:
-                                        st.markdown("""At %.3f level of significance, we accept the null hypotheses.
-                                    There is no significant difference between actual and model.""" % (significance))
-
-            with st.expander("Show Result"):
-                if ss.df_rftv_list is not None:
-                    # Display full table from the result
+            # Full Table & Stats Display
+            tab_list = st.tabs(ss.product_list)
+            for bu, tab in zip(ss.product_list, tab_list):
+                with tab:
                     st.write("Full Table")
+                    st.dataframe(ss.df_viz_list[bu].style.format({
+                        "CLV": "{:,.2f}",
+                        "frequency": "{:,.0f}",
+                        "recency": "{:,.0f}",
+                        "T": "{:,.0f}",
+                        "monetary_value": "{:,.2f}",
+                        "predict_purch_90": "{:,.2f}",
+                        "predict_purch_180": "{:,.2f}",
+                        "predict_purch_270": "{:,.2f}",
+                        "predict_purch_360": "{:,.2f}",
+                        "prob_alive": "{:,.2f}",
+                        "exp_avg_rev": "{:,.2f}",
+                        "avg_rev": "{:,.2f}",
+                        "error_rev": "{:,.2f}",
+                    }))
 
-                    ss.df_viz_list = {}
-                    for (bu, df_final), (bu, df) in zip(ss.df_rftv_list.items(), ss.df_list.items()):
-                        df_viz = export_table(df_final, df)
-                        ss.df_viz_list[bu] = df_viz
+                    df_csv = convert_df(ss.df_viz_list[bu])
 
-                    tab_list = st.tabs(ss.product_list)
-                    for bu, tab in zip(ss.product_list, tab_list):
-                        with tab:
+                    st.download_button("Press to Download",
+                                       df_csv,
+                                       "CLV Table.csv",
+                                       "text/csv",
+                                       key='download-csv-product'+ bu
+                                       )
 
-                            st.dataframe(ss.df_viz_list[bu].style.format({
-                                "CLV": "{:,.2f}",
-                                "frequency": "{:,.0f}",
-                                "recency": "{:,.0f}",
-                                "T": "{:,.0f}",
-                                "monetary_value": "{:,.2f}",
-                                "predict_purch_90": "{:,.2f}",
-                                "predict_purch_180": "{:,.2f}",
-                                "predict_purch_270": "{:,.2f}",
-                                "predict_purch_360": "{:,.2f}",
-                                "prob_alive": "{:,.2f}",
-                                "exp_avg_rev": "{:,.2f}",
-                                "avg_rev": "{:,.2f}",
-                                "error_rev": "{:,.2f}",
-                            }))
+                    # Display full table from the result
+                    st.write("Result Stats")
 
-                            df_csv = convert_df(ss.df_viz_list[bu])
+                    st.dataframe(ss.df_viz_list[bu].describe().style.format("{:,.2f}"))
 
-                            st.download_button("Press to Download",
-                                               df_csv,
-                                               "CLV Table.csv",
-                                               "text/csv",
-                                               key='download-csv-product'+ bu
-                                               )
+if ss.df_viz_list is not None:
+    col1.header("4. Visualization Filters")
+    with col1.expander("Select Filter"):
+        industry_type_cust = st.selectbox("Select Industry Type for Top 20 Customers", industry_options)
+        p_alive_slider = st.slider("Probability alive lower than X %", 10, 100, 80)
+        ss.prob_alive_input = float(p_alive_slider / 100)
 
-                            # Display full table from the result
-                            st.write("Result Stats")
+    st.header("3. Visualization")
 
-                            st.dataframe(ss.df_viz_list[bu].describe().style.format("{:,.2f}"))
+    # RFM Spread Visualization
+    with st.expander("RFM Stats"):
+        st.write("RFM Spread Visualization")
+        tab_list = st.tabs(ss.product_list)
+        for product, tab in zip(ss.product_list, tab_list):
+            with tab:
+                left_column, middle_column, right_column = st.columns(3)
+                max_freq_product = ss.df_rft_list[product]["frequency"].quantile(0.98)
+                max_rec_product = ss.df_rft_list[product]["recency"].max()
+                max_mon_product = ss.df_rft_list[product]["monetary_value"].quantile(0.98)
+                max_T_product = ss.df_rft_list[product]["T"].max()
+
+                with left_column:
+                    # training recency
+                    fig4 = plt.figure(figsize=(5, 5))
+                    ax = sns.distplot(ss.df_rft_list[product]["recency"])
+                    ax.set_xlim(0, max_rec_product)
+                    ax.set_title("recency (days): distribution of the customers")
+                    st.pyplot(fig4.figure)
+
+                with middle_column:
+                    # training: frequency
+                    fig5 = plt.figure(figsize=(5, 5))
+                    ax = sns.distplot(ss.df_rft_list[product]["frequency"])
+                    ax.set_xlim(0, max_freq_product)
+                    ax.set_title("frequency (days): distribution of the customers")
+                    st.pyplot(fig5.figure)
+
+                with right_column:
+                    # training: monetary
+                    fig6 = plt.figure(figsize=(5, 5))
+                    ax = sns.distplot(ss.df_rft_list[product]["monetary_value"])
+                    ax.set_xlim(0, max_mon_product)
+                    ax.set_title("monetary (USD): distribution of the customers")
+                    st.pyplot(fig6.figure)
+
+    # Customer Behavior Simulation
+    # with st.expander("Customer P(Alive) History Plot"):
+    #     tab_list = st.tabs(ss.product_list)
+    #     for product, tab in zip(ss.product_list, tab_list):
+    #         with tab:
+    #             with st.container():
+    #                 # Customer Selection
+    #                 customer_name_list = ss.df_viz_list[product]['Customer_Name']
+    #                 ss.customer_selection = st.selectbox("Select customer ID to see its purchase behavior", customer_name_list)
+    #
+    #                 ss.selected_customer_id = ss.df_viz_list[product].loc[ss.df_viz_list[product].Customer_Name == ss.customer_selection, 'Customer_ID'].values[0]
+    #
+    #                 # P Alive History
+    #                 selected_customer_name = ss.df_list[product][ss.df_list[product]["Customer_ID"] == ss.selected_customer_id]
+    #
+    #                 # selected customer: cumulative transactions
+    #                 max_date = ss.df_list[product]["Date"].max()
+    #                 min_date = ss.df_list[product]["Date"].min()
+    #                 span_days = (max_date - min_date).days
+    #
+    #                 # history of the selected customer: probability over time of being alive
+    #                 st.write(ss.customer_name_input)
+    #                 plt.figure(figsize=(20, 4))
+    #                 fig7 = plot_history_alive(model=ss.bgf_full_list[product],
+    #                                           t=span_days,
+    #                                           transactions=selected_customer_name,
+    #                                           datetime_col="Monetary Value"
+    #                                           )
+    #
+    #                 st.pyplot(fig7.figure)
+    #
+    #             # RFM & Last purchase date
+    #             with st.container():
+    #                 profile_col1, profile_col2, profile_col3, profile_col4, profile_col5, profile_col6 = st.columns(
+    #                     6)
+    #
+    #                 df_rfm_customer = ss.df_viz_list[product][ss.df_viz_list[product]["Customer ID"] == ss.customer_selection_id]
+    #
+    #                 with profile_col1:
+    #                     st.markdown("**Recency**")
+    #                     customer_recency = math.ceil((df_rfm_customer.iloc[0]['recency']) / 30)
+    #                     st.markdown(str(customer_recency) + " Lifetime Length")
+    #                 with profile_col2:
+    #                     st.markdown("**Frequency**")
+    #                     customer_frequency = math.ceil(df_rfm_customer.iloc[0]['frequency'])
+    #                     st.markdown(str(customer_frequency) + " Active Days")
+    #                 with profile_col3:
+    #                     st.markdown("**Monetary**")
+    #                     customer_monetary = math.ceil(df_rfm_customer.iloc[0]['monetary_value'])
+    #                     st.markdown("$ " + f'{customer_monetary:,}' + " Average Purchase Value")
+    #                 with profile_col4:
+    #                     st.markdown("**Last Purchase Date**")
+    #                     cust_last_purchase_date = max_date.date()
+    #                     st.markdown(cust_last_purchase_date)
+    #                 with profile_col5:
+    #                     st.markdown("**Predicted Purchase**")
+    #                     customer_purchase = math.ceil(df_rfm_customer.iloc[0]['predict_purch_360'])
+    #                     st.markdown(str(customer_purchase) + " Purchases")
+    #                 with profile_col6:
+    #                     st.markdown("**CLV**")
+    #                     customer_CLV = math.ceil(df_rfm_customer.iloc[0]['CLV'])
+    #                     st.markdown("$ " + f'{customer_CLV:,}')

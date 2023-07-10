@@ -25,9 +25,9 @@ def train_test_split(df):
 
     df_ch = calibration_and_holdout_data(
             transactions=df,
-            customer_id_col="Customer ID",
+            customer_id_col="Customer_ID",
             datetime_col="Date",
-            monetary_value_col="Monetary Value",
+            monetary_value_col="Transaction_Value",
             calibration_period_end=max_cal_date,
             observation_period_end=max_date,
             freq='D',
@@ -43,9 +43,9 @@ def max_date_func(df):
 def determine_df_rft(df, max_date):
     df_rft = summary_data_from_transaction_data(
         transactions=df,
-        customer_id_col="Customer ID",
+        customer_id_col="Customer_ID",
         datetime_col="Date",
-        monetary_value_col="Monetary Value",
+        monetary_value_col="Transaction_Value",
         observation_period_end=max_date,
         freq="D")
 
