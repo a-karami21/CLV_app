@@ -15,38 +15,27 @@ def read_order_intake_csv(dataset_file):
     df0 = pd.read_csv(dataset_file, sep=";")
     return df0
 
-def industry_filter(industry_type_selection, df):
-    if industry_type_selection == "Energy":
-        df = df[df['ec_eu_industry_type_n'].isin(["Energy"])]
-    elif industry_type_selection == "Material":
-        df = df[df['ec_eu_industry_type_n'].isin(["Material"])]
-    elif industry_type_selection == "Life":
-        df = df[df['ec_eu_industry_type_n'].isin(["Life"])]
-    elif industry_type_selection == "All":
-        pass
-    return df
-
 # train/test split (calibration/holdout)
 def train_test_split(df):
     t_holdout = 365                                         # days to reserve for holdout period
 
-    max_date = df["order_intake_date"].max()                     # end date of observations
+    max_date = df["Date"].max()                     # end date of observations
 
     max_cal_date = max_date - timedelta(days=t_holdout)     # end date of chosen calibration period
 
     df_ch = calibration_and_holdout_data(
-            transactions = df,
-            customer_id_col = "ec_eu_customer",
-            datetime_col = "order_intake_date",
-            monetary_value_col = "order_intake_amount_lc",
-            calibration_period_end = max_cal_date,
-            observation_period_end = max_date,
-            freq = 'D',
+            transactions=df,
+            customer_id_col="Customer ID",
+            datetime_col="Date",
+            monetary_value_col="Monetary Value",
+            calibration_period_end=max_cal_date,
+            observation_period_end=max_date,
+            freq='D',
             )
     return df_ch
 
 def max_date_func(df):
-    max_date = df["order_intake_date"].max()
+    max_date = df["Date"].max()
     return max_date
 
 
@@ -54,9 +43,9 @@ def max_date_func(df):
 def determine_df_rft(df, max_date):
     df_rft = summary_data_from_transaction_data(
         transactions=df,
-        customer_id_col="ec_eu_customer",
-        datetime_col="order_intake_date",
-        monetary_value_col="order_intake_amount_lc",
+        customer_id_col="Customer ID",
+        datetime_col="Date",
+        monetary_value_col="Monetary Value",
         observation_period_end=max_date,
         freq="D")
 
