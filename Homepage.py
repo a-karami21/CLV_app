@@ -61,6 +61,8 @@ if "df_rftv_list" not in ss:
     ss.df_rftv_list = None
 if "df_viz_list" not in ss:
     ss.df_viz_list = None
+if "merged_df" not in ss:
+    ss.merged_df = None
 
 # initialize session state variable for user input
 if "selected_columns_dict" not in ss:
@@ -397,17 +399,21 @@ if ss.df0 is not None and ss.attribute_is_valid:
                 # Combining Model Result & Customer Identities
                 ss.df_viz_list = {}
                 for (product, df_final), (product, df) in zip(ss.df_rftv_list.items(), ss.df_list.items()):
-                    df_viz = export_table(df_final, df)
-                    ss.df_viz_list[product] = df_viz
+                    ss.df_viz_list[product] = export_table(df_final, df)
 
-                df_with_product_col = ss.df_viz_list
-                for product, df in df_with_product_col.items():
-                    df["Product_Category"] = product
+                # Create a new dataframe to combine all product to one df
+                with st.container():
+                    # Create a new column named product Category based on the df product key
+                    df_with_product_col = ss.df_viz_list
+                    for product, df in df_with_product_col.items():
+                        df["Product"] = product
 
-                df_product_list = list(df_with_product_col.values())
-                merged_df = df_product_list[0]
-                for df in df_product_list[1:]:
-                    merged_df = pd.concat([merged_df, df], ignore_index=True)
+                    # Combine All product df to one df
+                    df_product_list = list(df_with_product_col.values())
+                    ss.merged_df = df_product_list[0]
+                    for df in df_product_list[1:]:
+                        ss.merged_df = pd.concat([ss.merged_df, df], ignore_index=True)
+
 
                 # Full Table & Stats Display
                 tab_list = st.tabs(ss.product_list)
@@ -430,13 +436,13 @@ if ss.df0 is not None and ss.attribute_is_valid:
                             "error_rev": "{:,.2f}",
                         }))
 
-                        df_csv = convert_df(merged_df)
+                        df_csv = convert_df(ss.merged_df)
 
                         st.download_button("Press to Download",
                                            df_csv,
                                            "CLV Table.csv",
                                            "text/csv",
-                                           key='download-csv-product'+ product
+                                           key='download-csv-product'+product
                                            )
 
                         # Display full table from the result
@@ -554,80 +560,89 @@ if ss.df_viz_list is not None:
 
     # Top Customers
     with st.expander("Top 20 Customers by CLV", expanded=True):
-        tab_list = st.tabs(ss.product_list)
-        for product, tab in zip(ss.product_list, tab_list):
-            with tab:
-                if industry_type_cust == "All":
-                    df_plot = ss.df_viz_list[product]
-                else:
-                    df_plot = ss.df_viz_list[product][ss.df_viz_list[product]['Industry'].isin([industry_type_cust])]
 
-                left_column, right_column = st.columns(2)
-                with left_column:
-                    st.markdown("Top 20 Customers by CLV")
+        # tab_list = st.tabs(ss.product_list)
+        # for product, tab in zip(ss.product_list, tab_list):
+        #     with tab:
 
-                    df_plot = df_plot[:20].reset_index()
-                    y = df_plot['Customer_Name']
-                    x = df_plot['CLV'] / 1000
+                # if industry_type_cust == "All":
+                #     df_plot = ss.df_viz_list[product]
+                # else:
+                #     df_plot = ss.df_viz_list[product][ss.df_viz_list[product]['Industry'].isin([industry_type_cust])]
 
-                    graph = figure(y_range=list(reversed(y)),
-                                   plot_height=500,
-                                   toolbar_location=None
-                                   )
+        df_plot = plot_df_preparation(ss.df0, ss.merged_df)
 
-                    graph.hbar(y=y, right=x, height=0.5, fill_color="#ffcc66", line_color="black")
+        left_column, right_column = st.columns(2)
+        with left_column:
+            st.markdown("Top 20 Customers by CLV")
 
-                    graph.xaxis.axis_label = "CLV (K USD)"
+            df_plot = df_plot.sort_values('Transaction_Value', ascending=False)
+            df_plot = df_plot[:20].reset_index(drop=True)
 
-                    st.bokeh_chart(graph)
+            st.dataframe(df_plot)
 
-    # Industry Segment
-    with st.expander("Industry Segment Visualization", expanded=True):
-        tab_list = st.tabs(ss.product_list)
-        for product, tab in zip(ss.product_list, tab_list):
-            with tab:
-                st.subheader("Industry Type & Segment CLV")
-                left_column, right_column = st.columns((2,1))
+            y = df_plot['Customer_Name']
+            x = df_plot['Transaction_Value'] / 1000
 
-                df_industry_viz = ss.df_viz_list[product].groupby(['Industry','Industry_Segment'])['CLV'].sum().sort_values(
-                                                    ascending=False).reset_index()
+            graph = figure(y_range=list(reversed(y)),
+                           plot_height=500,
+                           toolbar_location=None
+                           )
 
-                # Industry Segment Treemap
-                with left_column:
-                    st.markdown("Industry Segment Treemap")
+            graph.hbar(y=y, right=x, height=0.5, fill_color="#ffcc66", line_color="black")
 
-                    fig = px.treemap(df_industry_viz,
-                                     path = [px.Constant('All'), 'Industry', 'Industry_Segment'],
-                                     values = 'CLV',
-                                     width = 760,
-                                     height = 400)
+            graph.xaxis.axis_label = "CLV (K USD)"
 
-                    fig.update_traces(textinfo="label+percent root+percent parent")
+            st.bokeh_chart(graph)
 
-                    fig.update_layout(
-                        treemapcolorway= ["orange", "darkblue", "green"],
-                        margin = dict(t=0, l=0, r=0, b=0)
-                    )
 
-                    st.plotly_chart(fig)
-
-                # Top 10 Industry Segment
-                with right_column:
-
-                    df_industry_viz = df_industry_viz[:10].reset_index()
-
-                    st.markdown("Top 10 Industry Segment")
-                    y = df_industry_viz['Industry_Segment']
-                    x = df_industry_viz['CLV'] / 1000
-
-                    graph3 = figure(y_range=list(reversed(y)),
-                                    toolbar_location=None,
-                                    plot_height=400,
-                                    plot_width=400,
-                                    )
-
-                    graph3.hbar(y=y, right=x, height=0.5 ,fill_color="#ff9966", line_color="black")
-
-                    graph3.xaxis.axis_label = "CLV (K USD)"
-
-                    st.bokeh_chart(graph3)
+    # # Industry Segment
+    # with st.expander("Industry Segment Visualization", expanded=True):
+    #     tab_list = st.tabs(ss.product_list)
+    #     for product, tab in zip(ss.product_list, tab_list):
+    #         with tab:
+    #             st.subheader("Industry Type & Segment CLV")
+    #             left_column, right_column = st.columns((2,1))
+    #
+    #             df_industry_viz = ss.df_viz_list[product].groupby(['Industry','Industry_Segment'])['CLV'].sum().sort_values(
+    #                                                 ascending=False).reset_index()
+    #
+    #             # Industry Segment Treemap
+    #             with left_column:
+    #                 st.markdown("Industry Segment Treemap")
+    #
+    #                 fig = px.treemap(df_industry_viz,
+    #                                  path = [px.Constant('All'), 'Industry', 'Industry_Segment'],
+    #                                  values = 'CLV',
+    #                                  width = 760,
+    #                                  height = 400)
+    #
+    #                 fig.update_traces(textinfo="label+percent root+percent parent")
+    #
+    #                 fig.update_layout(
+    #                     treemapcolorway= ["orange", "darkblue", "green"],
+    #                     margin = dict(t=0, l=0, r=0, b=0)
+    #                 )
+    #
+    #                 st.plotly_chart(fig)
+    #
+    #             # Top 10 Industry Segment
+    #             with right_column:
+    #
+    #                 df_industry_viz = df_industry_viz[:10].reset_index()
+    #
+    #                 st.markdown("Top 10 Industry Segment")
+    #                 y = df_industry_viz['Industry_Segment']
+    #                 x = df_industry_viz['CLV'] / 1000
+    #
+    #                 graph3 = figure(y_range=list(reversed(y)),
+    #                                 toolbar_location=None,
+    #                                 plot_height=400,
+    #                                 plot_width=400,
+    #                                 )
+    #
+    #                 graph3.hbar(y=y, right=x, height=0.5 ,fill_color="#ff9966", line_color="black")
+    #
+    #                 graph3.xaxis.axis_label = "CLV (K USD)"
+    #
+    #                 st.bokeh_chart(graph3)

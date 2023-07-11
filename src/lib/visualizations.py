@@ -112,3 +112,20 @@ def export_table(df_rftv, df):
 @st.cache_resource
 def convert_df(df):
     return df.to_csv().encode('utf-8')
+
+def plot_df_preparation(df0, df_predicted):
+    grouped_df0 = df0.groupby(['Customer_ID', 'Customer_Name', 'Fiscal_Year',
+                               'Product', 'Industry', 'Industry_Segment']
+                              )['Transaction_Value'].sum().reset_index()
+
+    column_order = ['Customer_ID', 'Customer_Name', 'Product',
+                    'Industry', 'Industry_Segment', 'CLV']
+
+    df_plot_prep = df_predicted[column_order]
+    df_plot_prep = df_plot_prep.rename(columns={'CLV': 'Transaction_Value'})
+    df_plot_prep = df_plot_prep.drop(df_plot_prep.columns[6:], axis=1)
+    df_plot_prep.insert(3, "Fiscal_Year", "FY2023(Predicted)")
+
+    df_plot_prep = pd.concat([grouped_df0, df_plot_prep]).reset_index(drop=True)
+
+    return df_plot_prep
