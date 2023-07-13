@@ -1,40 +1,62 @@
-import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
+
+from lifetimes.plotting import \
+    plot_period_transactions, \
+    plot_calibration_purchases_vs_holdout_purchases, \
+    plot_history_alive
+
+import matplotlib.pyplot as plt
+import altair as alt
+import seaborn as sns
+
+import math
 
 from scipy.stats import chi2_contingency
 from scipy.stats import chi2
 
 # Predicted vs Actual (Train-Test) Graph Container
-def eva_viz1(bgf):
-    n = bgf.data.shape[0]
-    simulated_data = bgf.generate_new_data(size=n)
+@st.cache_data
+def evaluation_visualization(_bgf, df_ch):
 
-    model_counts = pd.DataFrame(bgf.data["frequency"].value_counts().sort_index().iloc[:9])
+    # Plot 1: Number of Customer each Period Level
+    n = _bgf.data.shape[0]
+    simulated_data = _bgf.generate_new_data(size=n)
+
+    model_counts = pd.DataFrame(_bgf.data["frequency"].value_counts().sort_index().iloc[:9])
+
     simulated_counts = pd.DataFrame(
         simulated_data["frequency"].value_counts().sort_index().iloc[:9])
+
     combined_counts = model_counts.merge(simulated_counts, how="outer", left_index=True,
                                          right_index=True).fillna(0)
+
     combined_counts.columns = ["Actual", "Model"]
 
-    ax = combined_counts.plot(kind="bar")
+    fig1 = combined_counts.plot(kind="bar")
 
-    ax.bar_label(ax.containers[0], label_type='edge')
-    ax.bar_label(ax.containers[1], label_type='edge')
+    fig1.bar_label(fig1.containers[0], label_type='edge')
+    fig1.bar_label(fig1.containers[1], label_type='edge')
 
     plt.legend()
     plt.title("Frequency of Repeat Transactions")
     plt.ylabel("Customers")
     plt.xlabel("Number of Calibration Period Transactions")
 
-    return ax
+    # Plot 2: Calibration vs Holdout Purchases & Model vs Actual
+    fig2 = plot_calibration_purchases_vs_holdout_purchases(_bgf, df_ch, n=9)
+
+    evaluation_plot_dict = {"Plot1": fig1, "Plot2": fig2}
+
+    return evaluation_plot_dict
 
 # Chisquare Dataframe
-def chi_square_test_customer_count(bu, bgf_list):
-    n = bgf_list[bu].data.shape[0]
-    simulated_data = bgf_list[bu].generate_new_data(size=n)
+@st.cache_data
+def chi_square_test_customer_count(bu, _bgf_list):
+    n = _bgf_list[bu].data.shape[0]
+    simulated_data = _bgf_list[bu].generate_new_data(size=n)
 
-    model_counts = pd.DataFrame(bgf_list[bu].data["frequency"].value_counts().sort_index().iloc[:])
+    model_counts = pd.DataFrame(_bgf_list[bu].data["frequency"].value_counts().sort_index().iloc[:])
     simulated_counts = pd.DataFrame(simulated_data["frequency"].value_counts().sort_index().iloc[:])
     combined_counts = model_counts.merge(simulated_counts, how="outer", left_index=True,
                                              right_index=True).fillna(0)
@@ -59,13 +81,14 @@ def chi_square_test_customer_count(bu, bgf_list):
 
     return df_chi_square_test_customer_count, chi, pval, dof, exp, significance, critical_value
 
-def chi_square_test_cal_vs_hol(df_ch_list, bgf_list, bu):
+@st.cache_data
+def chi_square_test_cal_vs_hol(df_ch_list, _bgf_list, bu):
     kind = "frequency_cal"
 
     summary = df_ch_list[bu].copy()
     duration_holdout = summary.iloc[0]["duration_holdout"]
 
-    summary["model_predictions"] = bgf_list[bu].conditional_expected_number_of_purchases_up_to_time(
+    summary["model_predictions"] = _bgf_list[bu].conditional_expected_number_of_purchases_up_to_time(
         duration_holdout, summary["frequency_cal"], summary["recency_cal"], summary["T_cal"])
 
     purch_diff = summary.groupby(kind)[["frequency_holdout", "model_predictions"]].mean().iloc[:]
@@ -91,6 +114,7 @@ def chi_square_test_cal_vs_hol(df_ch_list, bgf_list, bu):
     return df_chi_square_test_cal_vs_hol, chi, pval, dof, exp, significance, critical_value
 
 
+@st.cache_data
 def export_table(df_rftv, df):
     df_final = df_rftv
 
@@ -113,7 +137,76 @@ def export_table(df_rftv, df):
 def convert_df(df):
     return df.to_csv().encode('utf-8')
 
-def plot_df_preparation(df0, df_predicted):
+@st.cache_data
+def rfm_summary_figure(df_rft_list, product):
+    max_freq_product = df_rft_list[product]["frequency"].quantile(0.98)
+    max_rec_product = df_rft_list[product]["recency"].max()
+    max_mon_product = df_rft_list[product]["monetary_value"].quantile(0.98)
+    max_T_product = df_rft_list[product]["T"].max()
+
+    # training recency
+    fig1 = plt.figure(figsize=(5, 5))
+    ax1 = sns.distplot(df_rft_list[product]["recency"])
+    ax1.set_xlim(0, max_rec_product)
+    ax1.set_title("recency (days): distribution of the customers")
+
+    # training: frequency
+    fig2 = plt.figure(figsize=(5, 5))
+    ax2 = sns.distplot(df_rft_list[product]["frequency"])
+    ax2.set_xlim(0, max_freq_product)
+    ax2.set_title("frequency (days): distribution of the customers")
+
+    # training: monetary
+    fig3 = plt.figure(figsize=(5, 5))
+    ax3 = sns.distplot(df_rft_list[product]["monetary_value"])
+    ax3.set_xlim(0, max_mon_product)
+    ax3.set_title("monetary (USD): distribution of the customers")
+    # st.pyplot(fig3.figure)
+
+    rfm_plot_dict = {"Recency": fig1, "Frequency": fig2, "Monetary": fig3}
+
+    return rfm_plot_dict
+
+
+@st.cache_data
+def fig_p_alive_history(product, df_list, _bgf_full_list, selected_customer):
+    # selected customer: cumulative transactions
+    max_date = df_list[product]["Date"].max()
+    min_date = df_list[product]["Date"].min()
+    span_days = (max_date - min_date).days
+
+    # history of the selected customer: probability over time of being alive
+    plt.figure(figsize=(20, 4))
+    fig = plot_history_alive(model=_bgf_full_list[product],
+                              t=span_days,
+                              transactions=selected_customer,
+                              datetime_col="Date")
+
+    return fig
+
+
+@st.cache_data
+def customer_rfm_summary(df_viz_list, product, df_list, selected_customer_id):
+    df_rfm_customer = df_viz_list[product][df_viz_list[product]["Customer_ID"] == selected_customer_id]
+
+    max_date = df_list[product]["Date"].max()
+
+    customer_recency = math.ceil((df_rfm_customer.iloc[0]['recency']) / 30)
+    customer_frequency = math.ceil(df_rfm_customer.iloc[0]['frequency'])
+    customer_monetary = math.ceil(df_rfm_customer.iloc[0]['monetary_value'])
+    cust_last_purchase_date = max_date.date()
+    predicted_purchase = math.ceil(df_rfm_customer.iloc[0]['predict_purch_360'])
+    customer_CLV = math.ceil(df_rfm_customer.iloc[0]['CLV'])
+
+    rfm_summary_dict = {"Recency": customer_recency, "Frequency": customer_frequency,
+                        "Monetary": customer_monetary, "Last Purchase": cust_last_purchase_date,
+                        "Predicted Purchase": predicted_purchase, "CLV": customer_CLV}
+
+    return rfm_summary_dict
+
+
+@st.cache_data
+def df_plot_preparation(df0, df_predicted):
     grouped_df0 = df0.groupby(['Customer_ID', 'Customer_Name', 'Fiscal_Year',
                                'Product', 'Industry', 'Industry_Segment']
                               )['Transaction_Value'].sum().reset_index()
@@ -129,3 +222,46 @@ def plot_df_preparation(df0, df_predicted):
     df_plot_prep = pd.concat([grouped_df0, df_plot_prep]).reset_index(drop=True)
 
     return df_plot_prep
+
+
+@st.cache_data
+def top_cust_data_prep(df_plot_prep, industry_filter, product_filter_list):
+    # Filter df to Predicted Year
+    df_filtered = df_plot_prep[df_plot_prep["Fiscal_Year"] == "FY2023(Predicted)"]
+
+    # Filter df to selected industry
+    if industry_filter == "All":
+        pass
+    else:
+        df_filtered = df_filtered[df_filtered["Industry"] == industry_filter]
+
+    # Filter df to selected products
+    if not product_filter_list:
+        pass
+    else:
+        df_filtered = df_filtered[df_filtered["Product"].isin(product_filter_list)]
+
+    # Group Customer by transaction value
+    df_grouped = df_filtered.groupby('Customer_Name')['Transaction_Value'].sum().reset_index()
+    df_grouped.columns = ['Customer_Name', 'Total Value']
+
+    # Add the Rank column based on descending order of total value
+    df_grouped['Rank'] = df_grouped['Total Value'].rank(ascending=False).astype(int)
+
+    # Merge the rank information back to the original DataFrame
+    df_plot = pd.merge(df_filtered, df_grouped[['Customer_Name', 'Rank']], on='Customer_Name')
+
+    return df_plot
+
+
+@st.cache_data()
+def fig_top20(df_plot, colors):
+    plot = alt.Chart(df_plot).mark_bar().encode(
+        y=alt.Y('Customer_Name', stack=True, sort=alt.EncodingSortField(field="Rank", op='min', order='ascending')),
+        x='Transaction_Value',
+        color=alt.Color('Product', scale=alt.Scale(range=colors)),
+    ).transform_filter(alt.datum.Rank <= 20).interactive()
+
+    return plot
+
+

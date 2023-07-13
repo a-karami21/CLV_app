@@ -15,6 +15,32 @@ def read_order_intake_csv(dataset_file):
     df0 = pd.read_csv(dataset_file, sep=";")
     return df0
 
+def modelling_data_prep(industry_selection, df0):
+
+    # Filter Dataframe to the Selected Industries
+    if industry_selection == "All":
+        pass
+    else:
+        df0 = df0["Industry"].isin([industry_selection])
+
+    # Treat CustomerID as a categorical variable
+    df0["Customer_ID"].astype(np.int64).astype(object)
+    # Convert Date Column to Datetime Format
+    df0["Date"] = pd.to_datetime(df0["Date"])
+    # Convert Transaction Value Column to Numeric Format
+    df0["Transaction_Value"] = pd.to_numeric(df0["Transaction_Value"])
+
+    # Create Dictionary for Each Product Category & Its Dataframe
+    product_list = df0["Product"].unique().tolist()
+    df_list = {}
+
+    for product in product_list:
+        df = df0[df0["Product"].isin([product])]
+        df_list[product] = df
+
+    return df_list
+
+
 # train/test split (calibration/holdout)
 def train_test_split(df):
     t_holdout = 365                                         # days to reserve for holdout period
