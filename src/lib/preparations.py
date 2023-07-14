@@ -38,7 +38,7 @@ def modelling_data_prep(industry_selection, df0):
         df = df0[df0["Product"].isin([product])]
         df_list[product] = df
 
-    return df_list
+    return product_list, df_list
 
 
 # train/test split (calibration/holdout)

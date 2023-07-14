@@ -260,8 +260,88 @@ def fig_top20(df_plot, colors):
         y=alt.Y('Customer_Name', stack=True, sort=alt.EncodingSortField(field="Rank", op='min', order='ascending')),
         x='Transaction_Value',
         color=alt.Color('Product', scale=alt.Scale(range=colors)),
-    ).transform_filter(alt.datum.Rank <= 20).interactive()
+    ).transform_filter(alt.datum.Rank <= 20).properties(height=500).interactive()
 
     return plot
 
+@st.cache_data
+def sales_growth_data_prep(df_plot_prep, industry_filter, product_filter_list, customer_filter):
 
+    df_plot = df_plot_prep
+
+    # Filter df to selected industry
+    if industry_filter == "All":
+        pass
+    else:
+        df_plot = df_plot[df_plot["Industry"] == industry_filter]
+
+    # Filter df to selected products
+    if not product_filter_list:
+        pass
+    else:
+        df_plot = df_plot[df_plot["Product"].isin(product_filter_list)]
+
+    # Filter df to selected customer
+
+    if customer_filter == "All":
+        pass
+    else:
+        df_plot = df_plot[df_plot["Customer_Name"] == customer_filter]
+
+    df_plot = df_plot.groupby(["Fiscal_Year", "Product"])['Transaction_Value'].sum().reset_index()
+
+    return df_plot
+
+@st.cache_data()
+def fig_sales_growth(df_plot, colors):
+    plot = alt.Chart(df_plot).mark_bar().encode(
+        x='Fiscal_Year',
+        y='Transaction_Value',
+        color=alt.Color('Product', scale=alt.Scale(range=colors))
+
+    ).properties(height=500).interactive()
+
+    return plot
+
+@st.cache_data()
+def line_plot_data_prep(df_plot_prep, industry_filter, product_filter, group_selection):
+    df_plot = df_plot_prep
+
+    # Filter df to selected industry
+    if not industry_filter:
+        pass
+    else:
+        df_plot = df_plot[df_plot["Industry"].isin(industry_filter)]
+
+    # Filter df to selected products
+    if not product_filter:
+        pass
+    else:
+        df_plot = df_plot[df_plot["Product"].isin(product_filter)]
+
+    if group_selection == "Industry":
+        df_plot = df_plot.groupby(["Fiscal_Year", "Industry"])['Transaction_Value'].sum().reset_index()
+    elif group_selection == "Product":
+        df_plot = df_plot.groupby(["Fiscal_Year", "Product"])['Transaction_Value'].sum().reset_index()
+
+    return df_plot
+
+@st.cache_data()
+def fig_line_plot(df_plot, colors, group):
+    plot = alt.Chart(df_plot).mark_line(point=alt.OverlayMarkDef(color="red")).encode(
+        x='Fiscal_Year',
+        y='Transaction_Value',
+        color=alt.Color(group, scale=alt.Scale(range=colors))
+
+    ).properties(height=500).interactive()
+
+    text = alt.Chart(df_plot).mark_text(dy=15, color='black', fontSize=15).encode(
+        x='Fiscal_Year',
+        y='Transaction_Value',
+        color=alt.Color(group, scale=alt.Scale(range=colors)),
+        text=alt.Text("Transaction_Value:Q", format=',.0f')
+    )
+
+    plot = alt.layer(plot, text).configure_point(size=50)
+
+    return plot

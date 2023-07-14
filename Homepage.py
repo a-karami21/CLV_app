@@ -1,3 +1,4 @@
+import numpy as np
 import streamlit as st
 import configparser
 
@@ -199,7 +200,7 @@ if ss.df0 is not None and ss.attribute_is_valid:
     train_checkbox = st.checkbox("Train Model")
 
     # Data Preparation
-    ss.df_list = modelling_data_prep(industry_selection, ss.df0)
+    ss.product_list, ss.df_list = modelling_data_prep(industry_selection, ss.df0)
 
     # Train BG/NBD to Fit on the full dataset
     if train_checkbox:
@@ -325,56 +326,53 @@ if ss.df0 is not None and ss.attribute_is_valid:
 
                         # RMSE, MAE, Pearson Correlation, MAPE
                         with left_column:
-                            with st.container():
-                                st.write("BG/NBD Model Performance:")
-                                st.markdown("* MAE: {0}".format(score_model(bgf_eval_list_predicted[product],
-                                                                            bgf_eval_list_actual[product],
-                                                                            'mae')))
-                                st.markdown("* RMSE: {0}".format(score_model(bgf_eval_list_predicted[product],
-                                                                            bgf_eval_list_actual[product],
-                                                                             'rmse')))
-                                st.write("Gamma-Gamma Model Performance:")
-                                st.markdown("* Pearson correlation: %.3f" % ss.corr_list[product])
-                                st.markdown("* MAPE of predicted revenues: " + f'{ss.mape_list[product]:.2f}')
+                            st.write("BG/NBD Model Performance:")
+                            st.markdown("* MAE: {0}".format(score_model(bgf_eval_list_predicted[product],
+                                                                        bgf_eval_list_actual[product],
+                                                                        'mae')))
+                            st.markdown("* RMSE: {0}".format(score_model(bgf_eval_list_predicted[product],
+                                                                        bgf_eval_list_actual[product],
+                                                                         'rmse')))
+                            st.write("Gamma-Gamma Model Performance:")
+                            st.markdown("* Pearson correlation: %.3f" % ss.corr_list[product])
+                            st.markdown("* MAPE of predicted revenues: " + f'{ss.mape_list[product]:.2f}')
 
                         # Chi-Square Test (Customer Count)
                         with middle_column:
-                            with st.container():
-                                st.write("Prediction Difference of Customer Count")
+                            st.write("Prediction Difference of Customer Count")
 
-                                df_chi_square_test_customer_count, chi, pval,\
-                                dof, exp, significance, critical_value = chi_square_test_customer_count(product, ss.bgf_list)
+                            df_chi_square_test_customer_count, chi, pval,\
+                            dof, exp, significance, critical_value = chi_square_test_customer_count(product, ss.bgf_list)
 
-                                st._legacy_dataframe(df_chi_square_test_customer_count.style.format("{:,.0f}"))
+                            st._legacy_dataframe(df_chi_square_test_customer_count.style.format("{:,.0f}"))
 
-                                st.markdown('p-value is {:.5f}'.format(pval))
-                                st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
-                                if chi > critical_value:
-                                    st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
-                                  There is significant difference between actual and model.""" % (significance))
-                                else:
-                                    st.markdown("""At %.3f level of significance, we accept the null hypotheses.
-                                  There is no significant difference between actual and model.""" % (significance))
+                            st.markdown('p-value is {:.5f}'.format(pval))
+                            st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
+                            if chi > critical_value:
+                                st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
+                              There is significant difference between actual and model.""" % (significance))
+                            else:
+                                st.markdown("""At %.3f level of significance, we accept the null hypotheses.
+                              There is no significant difference between actual and model.""" % (significance))
 
                         # Chi-Square Test (Holdout vs Calibration Purchases)
                         with right_column:
-                            with st.container():
-                                st.write("Prediction Difference of Calibration vs Holdout Purchases")
+                            st.write("Prediction Difference of Calibration vs Holdout Purchases")
 
-                                df_chi_square_test_cal_vs_hol, chi, pval, \
-                                dof, exp, significance, critical_value = chi_square_test_cal_vs_hol(ss.df_ch_list, ss.bgf_list, product)
+                            df_chi_square_test_cal_vs_hol, chi, pval, \
+                            dof, exp, significance, critical_value = chi_square_test_cal_vs_hol(ss.df_ch_list, ss.bgf_list, product)
 
-                                st._legacy_dataframe(df_chi_square_test_cal_vs_hol.style.format("{:,.2f}"))
+                            st._legacy_dataframe(df_chi_square_test_cal_vs_hol.style.format("{:,.2f}"))
 
-                                st.markdown('p-value is {:.5f}'.format(pval))
-                                st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
+                            st.markdown('p-value is {:.5f}'.format(pval))
+                            st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
 
-                                if chi > critical_value:
-                                    st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
-                                There is significant difference between actual and model.""" % (significance))
-                                else:
-                                    st.markdown("""At %.3f level of significance, we accept the null hypotheses.
-                                There is no significant difference between actual and model.""" % (significance))
+                            if chi > critical_value:
+                                st.markdown("""At %.3f level of significance, we reject the null hypotheses and accept H1.
+                            There is significant difference between actual and model.""" % (significance))
+                            else:
+                                st.markdown("""At %.3f level of significance, we accept the null hypotheses.
+                            There is no significant difference between actual and model.""" % (significance))
 
         # Model Result (Table)
         with st.expander("Show Result"):
@@ -511,69 +509,102 @@ if ss.df_viz_list is not None:
     # Top Customers
     with st.expander("CLV Visualizations", expanded=True):
 
-        df_plot_prep = df_plot_preparation(ss.df0, ss.merged_df)
-
-        left_column, right_column = st.columns(2)
-        with left_column:
-            st.subheader("Top 20 Customers by CLV")
-
-            industry_filter_selection = st.selectbox("Industry Filter", industry_options)
-            product_filter_selection = st.multiselect("Product Filter", df_plot_prep["Product"].unique())
-
-            df_plot = top_cust_data_prep(df_plot_prep, industry_filter_selection, product_filter_selection)
+        # Top 20 & Sales Growth Plot
+        with st.container():
+            df_plot_prep = df_plot_preparation(ss.df0, ss.merged_df)
 
             colors = ["#264653", "#2A9D8F", "#E9C46A", "#F4A261", "#EE8959", "#E76F51"]
 
-            st.altair_chart(fig_top20(df_plot, colors), use_container_width=True)
+            left_column, right_column = st.columns(2)
+            with left_column:
+                st.subheader("Top 20 Customers by CLV")
 
+                industry_filter_selection = st.selectbox("Industry Filter", industry_options, key="top20_industry")
+                product_filter_selection = st.multiselect("Product Filter", df_plot_prep["Product"].unique(), key="top20_product")
 
-    # # Industry Segment
-    # with st.expander("Industry Segment Visualization", expanded=True):
-    #     tab_list = st.tabs(ss.product_list)
-    #     for product, tab in zip(ss.product_list, tab_list):
-    #         with tab:
-    #             st.subheader("Industry Type & Segment CLV")
-    #             left_column, right_column = st.columns((2,1))
-    #
-    #             df_industry_viz = ss.df_viz_list[product].groupby(['Industry','Industry_Segment'])['CLV'].sum().sort_values(
-    #                                                 ascending=False).reset_index()
-    #
-    #             # Industry Segment Treemap
-    #             with left_column:
-    #                 st.markdown("Industry Segment Treemap")
-    #
-    #                 fig = px.treemap(df_industry_viz,
-    #                                  path = [px.Constant('All'), 'Industry', 'Industry_Segment'],
-    #                                  values = 'CLV',
-    #                                  width = 760,
-    #                                  height = 400)
-    #
-    #                 fig.update_traces(textinfo="label+percent root+percent parent")
-    #
-    #                 fig.update_layout(
-    #                     treemapcolorway= ["orange", "darkblue", "green"],
-    #                     margin = dict(t=0, l=0, r=0, b=0)
-    #                 )
-    #
-    #                 st.plotly_chart(fig)
-    #
-    #             # Top 10 Industry Segment
-    #             with right_column:
-    #
-    #                 df_industry_viz = df_industry_viz[:10].reset_index()
-    #
-    #                 st.markdown("Top 10 Industry Segment")
-    #                 y = df_industry_viz['Industry_Segment']
-    #                 x = df_industry_viz['CLV'] / 1000
-    #
-    #                 graph3 = figure(y_range=list(reversed(y)),
-    #                                 toolbar_location=None,
-    #                                 plot_height=400,
-    #                                 plot_width=400,
-    #                                 )
-    #
-    #                 graph3.hbar(y=y, right=x, height=0.5 ,fill_color="#ff9966", line_color="black")
-    #
-    #                 graph3.xaxis.axis_label = "CLV (K USD)"
-    #
-    #                 st.bokeh_chart(graph3)
+                df_plot = top_cust_data_prep(df_plot_prep, industry_filter_selection, product_filter_selection)
+
+                st.altair_chart(fig_top20(df_plot, colors), use_container_width=True)
+
+            with right_column:
+                st.subheader("Predicted Sales Growth")
+
+                # Filter Selection
+                with st.container():
+                    left_column, right_column = st.columns(2)
+
+                    # Industry & Product Filter
+                    with left_column:
+                        industry_filter_selection = st.selectbox("Industry Filter", industry_options,
+                                                                 key="growth_industry")
+                        product_filter_selection = st.multiselect("Product Filter", df_plot_prep["Product"].unique(),
+                                                                  key="growth_product")
+                    # Customer Filter
+                    with right_column:
+                        predicted_customer_only = st.checkbox("Predicted Customer Only?", value=True)
+
+                        if not predicted_customer_only:
+                            df_customer_filter = df_plot_prep
+                        else:
+                            df_customer_filter = df_plot_prep[df_plot_prep['Customer_Name'].isin(
+                                df_plot_prep[df_plot_prep['Fiscal_Year'] == 'FY2023(Predicted)']['Customer_Name'])]
+
+                        customer_filter_selection_list = df_customer_filter["Customer_Name"].unique().tolist()
+                        customer_filter_selection_list.insert(0, "All")
+                        customer_filter_selection = st.selectbox("Customer Filter", customer_filter_selection_list,
+                                                                 key="growth_customer")
+
+                df_plot = sales_growth_data_prep(df_plot_prep, industry_filter_selection,
+                                                 product_filter_selection, customer_filter_selection)
+
+                plot = fig_sales_growth(df_plot, colors)
+                st.altair_chart(plot, use_container_width=True)
+
+        # UI Divider
+        st.divider()
+
+        # Line Plot for Comparison
+        with st.container():
+            st.subheader("Top 20 Customers by CLV")
+            left_column, right_column = st.columns((1,4))
+
+            # Line Plot Filters
+            with left_column:
+                line_plot_group = st.selectbox("Select Grouping Variable", ["Industry", "Product"],
+                                               index=0, key="line_plot_group")
+                industry_filter_selection = st.multiselect("Industry Filter", df_plot_prep["Industry"].unique(),
+                                                           key="line_plot_industry")
+                product_filter_selection = st.multiselect("Product Filter", df_plot_prep["Product"].unique(),
+                                                          key="line_plot_product")
+
+            # Line Plot Chart
+            with right_column:
+                df_plot = line_plot_data_prep(df_plot_prep, industry_filter_selection,
+                                              product_filter_selection, line_plot_group)
+
+                plot = fig_line_plot(df_plot, colors, line_plot_group)
+                st.altair_chart(plot, use_container_width=True)
+
+        # UI Divider
+        st.divider()
+
+        # Industry Segment
+        with st.container():
+            st.subheader("Industry Segment Treemap")
+
+            df_plot = df_plot_prep.groupby(['Industry','Industry_Segment'])['Transaction_Value'].sum().reset_index()
+
+            # Industry Segment Treemap
+            fig = px.treemap(df_plot,
+                             path=[px.Constant('All'), 'Industry', 'Industry_Segment'],
+                             values='Transaction_Value',
+                             height=500)
+
+            fig.update_traces(textinfo="label+percent root+percent parent")
+
+            fig.update_layout(
+                treemapcolorway= ["orange", "darkblue", "green"],
+                margin=dict(t=0, l=0, r=0, b=0)
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
