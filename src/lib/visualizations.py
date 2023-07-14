@@ -8,6 +8,7 @@ from lifetimes.plotting import \
 
 import matplotlib.pyplot as plt
 import altair as alt
+import plotly.express as px
 import seaborn as sns
 
 import math
@@ -343,5 +344,42 @@ def fig_line_plot(df_plot, colors, group):
     )
 
     plot = alt.layer(plot, text).configure_point(size=50)
+
+    return plot
+
+@st.cache_data()
+def industry_treemap_data_prep(df_plot_prep, year_filter, product_filter):
+    df_plot = df_plot_prep
+
+    # Filter df to selected year
+    if year_filter == "All":
+        pass
+    else:
+        df_plot = df_plot[df_plot["Fiscal_Year"] == year_filter]
+
+    # Filter df to selected product
+    if product_filter == "All":
+        pass
+    else:
+        df_plot = df_plot[df_plot["Product"] == product_filter]
+
+    df_plot = df_plot.groupby(['Industry', 'Industry_Segment'])['Transaction_Value'].sum().reset_index()
+
+    return df_plot
+
+@st.cache_data()
+def fig_industry_treemap(df_plot):
+    # Industry Segment Treemap
+    plot = px.treemap(df_plot,
+                      path=[px.Constant('All'), 'Industry', 'Industry_Segment'],
+                      values='Transaction_Value',
+                      height=500)
+
+    plot.update_traces(textinfo="label+percent root+percent parent")
+
+    plot.update_layout(
+        treemapcolorway=["orange", "darkblue", "green"],
+        margin=dict(t=0, l=0, r=0, b=0)
+    )
 
     return plot

@@ -549,9 +549,9 @@ if ss.df_viz_list is not None:
                             df_customer_filter = df_plot_prep[df_plot_prep['Customer_Name'].isin(
                                 df_plot_prep[df_plot_prep['Fiscal_Year'] == 'FY2023(Predicted)']['Customer_Name'])]
 
-                        customer_filter_selection_list = df_customer_filter["Customer_Name"].unique().tolist()
-                        customer_filter_selection_list.insert(0, "All")
-                        customer_filter_selection = st.selectbox("Customer Filter", customer_filter_selection_list,
+                        customer_filter_list = df_customer_filter["Customer_Name"].unique().tolist()
+                        customer_filter_list.insert(0, "All")
+                        customer_filter_selection = st.selectbox("Customer Filter", customer_filter_list,
                                                                  key="growth_customer")
 
                 df_plot = sales_growth_data_prep(df_plot_prep, industry_filter_selection,
@@ -592,19 +592,25 @@ if ss.df_viz_list is not None:
         with st.container():
             st.subheader("Industry Segment Treemap")
 
-            df_plot = df_plot_prep.groupby(['Industry','Industry_Segment'])['Transaction_Value'].sum().reset_index()
+            # Filters Selection
+            with st.container():
+                left_column, right_column = st.columns(2)
 
-            # Industry Segment Treemap
-            fig = px.treemap(df_plot,
-                             path=[px.Constant('All'), 'Industry', 'Industry_Segment'],
-                             values='Transaction_Value',
-                             height=500)
+                with left_column:
+                    year_filter_list = sorted(df_plot_prep["Fiscal_Year"].unique().tolist())
+                    year_filter_list.insert(0, "All")
 
-            fig.update_traces(textinfo="label+percent root+percent parent")
+                    year_filter_selection = st.selectbox("Year Filter", year_filter_list,
+                                                         key="treemap_year", index=0)
 
-            fig.update_layout(
-                treemapcolorway= ["orange", "darkblue", "green"],
-                margin=dict(t=0, l=0, r=0, b=0)
-            )
+                with right_column:
+                    product_filter_list = df_plot_prep["Product"].unique().tolist()
+                    product_filter_list.insert(0, "All")
 
-            st.plotly_chart(fig, use_container_width=True)
+                    product_filter_selection = st.selectbox("Product Filter", product_filter_list,
+                                                            key="treemap_product",)
+
+            df_plot = industry_treemap_data_prep(df_plot_prep, year_filter_selection, product_filter_selection)
+
+            plot = fig_industry_treemap(df_plot)
+            st.plotly_chart(plot, use_container_width=True)
