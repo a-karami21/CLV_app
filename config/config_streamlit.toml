@@ -2,7 +2,7 @@
 
 app_title = "Customer-Base Analysis App"
 
-app_description = "This app is for analyzing customer-base purchase behavior and future value"
+app_description = "This app is for analyzing customer-base purchase pattern and future value (Customer Lifetime Value)"
 
 app_overview_definition = """
 **App Functions**
