@@ -446,7 +446,7 @@ if ss.df_viz_list is not None:
                     # Customer Filter
                     with right_column:
                         predicted_customer_only = st.checkbox("Predicted Customer Only?", value=True,
-                                                              help="Filter Options only shows customer that have"
+                                                              help="Filter Options only shows customer that have "
                                                                    "value in FY2023 (Predicted)")
 
                         if not predicted_customer_only:
