@@ -333,7 +333,7 @@ if train_checkbox:
 
 if ss.df_viz_list is not None:
     st.header("3. Visualization")
-    with st.expander("Visualizations", expanded=True):
+    with st.expander("Visualizations"):
 
         # RFM Spread Visualization
         with st.container():
@@ -416,7 +416,7 @@ if ss.df_viz_list is not None:
             with left_column:
                 st.subheader("Top 20 Customers by CLV")
 
-                industry_options = df_plot_prep["Product"].unique().tolist()
+                industry_options = df_plot_prep["Industry"].unique().tolist()
                 industry_options.insert(0, "All")
 
                 industry_filter_selection = st.selectbox("Industry Filter", industry_options, key="top20_industry")
@@ -436,7 +436,7 @@ if ss.df_viz_list is not None:
                     # Industry & Product Filter
                     with left_column:
 
-                        industry_options = df_plot_prep["Product"].unique().tolist()
+                        industry_options = df_plot_prep["Industry"].unique().tolist()
                         industry_options.insert(0, "All")
 
                         industry_filter_selection = st.selectbox("Industry Filter", industry_options,
