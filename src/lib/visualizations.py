@@ -172,8 +172,8 @@ def rfm_summary_figure(df_rft_list, product):
 @st.cache_data
 def fig_p_alive_history(product, df_list, _bgf_full_list, selected_customer):
     # selected customer: cumulative transactions
-    max_date = df_list[product]["Date"].max()
-    min_date = df_list[product]["Date"].min()
+    max_date = df_list[product]["Transaction_Date"].max()
+    min_date = df_list[product]["Transaction_Date"].min()
     span_days = (max_date - min_date).days
 
     # history of the selected customer: probability over time of being alive
@@ -181,7 +181,7 @@ def fig_p_alive_history(product, df_list, _bgf_full_list, selected_customer):
     fig = plot_history_alive(model=_bgf_full_list[product],
                               t=span_days,
                               transactions=selected_customer,
-                              datetime_col="Date")
+                              datetime_col="Transaction_Date")
 
     return fig
 
@@ -190,7 +190,7 @@ def fig_p_alive_history(product, df_list, _bgf_full_list, selected_customer):
 def customer_rfm_summary(df_viz_list, product, df_list, selected_customer_id):
     df_rfm_customer = df_viz_list[product][df_viz_list[product]["Customer_ID"] == selected_customer_id]
 
-    max_date = df_list[product]["Date"].max()
+    max_date = df_list[product]["Transaction_Date"].max()
 
     customer_recency = math.ceil((df_rfm_customer.iloc[0]['recency']) / 30)
     customer_frequency = math.ceil(df_rfm_customer.iloc[0]['frequency'])

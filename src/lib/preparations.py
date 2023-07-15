@@ -20,7 +20,7 @@ def modelling_data_prep(df0):
     # Treat CustomerID as a categorical variable
     df0["Customer_ID"].astype(np.int64).astype(object)
     # Convert Date Column to Datetime Format
-    df0["Date"] = pd.to_datetime(df0["Date"])
+    df0["Transaction_Date"] = pd.to_datetime(df0["Transaction_Date"])
     # Convert Transaction Value Column to Numeric Format
     df0["Transaction_Value"] = pd.to_numeric(df0["Transaction_Value"])
 
@@ -39,14 +39,14 @@ def modelling_data_prep(df0):
 def train_test_split(df):
     t_holdout = 365                                         # days to reserve for holdout period
 
-    max_date = df["Date"].max()                     # end date of observations
+    max_date = df["Transaction_Date"].max()                     # end date of observations
 
     max_cal_date = max_date - timedelta(days=t_holdout)     # end date of chosen calibration period
 
     df_ch = calibration_and_holdout_data(
             transactions=df,
             customer_id_col="Customer_ID",
-            datetime_col="Date",
+            datetime_col="Transaction_Date",
             monetary_value_col="Transaction_Value",
             calibration_period_end=max_cal_date,
             observation_period_end=max_date,
@@ -55,7 +55,7 @@ def train_test_split(df):
     return df_ch
 
 def max_date_func(df):
-    max_date = df["Date"].max()
+    max_date = df["Transaction_Date"].max()
     return max_date
 
 
@@ -64,7 +64,7 @@ def determine_df_rft(df, max_date):
     df_rft = summary_data_from_transaction_data(
         transactions=df,
         customer_id_col="Customer_ID",
-        datetime_col="Date",
+        datetime_col="Transaction_Date",
         monetary_value_col="Transaction_Value",
         observation_period_end=max_date,
         freq="D")

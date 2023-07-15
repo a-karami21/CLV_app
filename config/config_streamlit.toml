@@ -25,16 +25,21 @@ which is equal to the duration between a customer’s first purchase and their l
 * **Frequency**: the number of periods in which the customer has made a repeat purchase.
 * **T**: the age of the customer at the end of the period under study, \
 which is equal to the duration between a customer’s first purchase and the last day in the dataset.
-* **Monetary**: the customer's average transaction value (order intake).
+* **Monetary**: the customer's average transaction value.
 """
 
 app_overview_guide = """
-**User Guide**
-1. Upload the provided dataset* on the sidebar.
-2. Select **[Business Unit]** and **[Industry Type]** to be trained.
-3. Select desired **[Interest Rate]** and **[Lifetime (Months)]** you wish to predict.
-4. Check the **Train Model** checkbox.
-5. Open the **[Performance Score]** box to see model performance.
+**Model Explanation**
+\n
+This app uses two of the statistical models from the "Buy Till You Die (BTYD)" called BG/NBD Model and Gamma-Gamma Model.
+* **BG/NBD Model** is statistical model designed to capture the behavioral characteristics of \
+non-contractual customers (when the company is now able to directly observe when a customer stops being a customer).
+* The purpose of BG/NBD Model is to calculate the probability of customer being inactive and to predict \
+the number of customer's future purchases.
+* The purpose of Gamma-Gamma Model is to predict the customer's future average transaction value.
+\n
+**Evaluation Metrics**
+\n
 * **MAE** is the average error of the predicted model
 * **RMSE** is the root average error of the predicted model
 * **Chi-Square test** is a test to identify if there are significant difference between model and actual data.
@@ -43,9 +48,8 @@ The closer to zero the more appropriate the data for the model because
 model assumes there are no dependency between frequency and monetary
 * **MAPE** is the average percentage error of the prediction.\
 is used to calculate error between predicted and actual average transaction value
-6. You can view or download the model **results & stats**.
-7. Go to **[Visualization]** page in sidebar for visualization.
-8. Input your desired **filters** in sidebar.
 """
 
-app_workflow_image = './references/CLV_Flowchart.png'
+app_conceptual_model_image = './references/Conceptual Model.png'
+
+app_dataset = './references/Dataset.csv'

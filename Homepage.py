@@ -90,23 +90,33 @@ with st.container():
 
 # Sidebar Options
 # Data Upload
-col1.header("1. Data")
+col1.header("Dataset")
 with col1.expander("Dataset", expanded=True):
-    # Uploader
-    dataset_file = st.file_uploader('Upload the order intake data')
 
-    # Annual Discount Rate Selection
-    annual_discount_rate = st.number_input("Input Annual Interest Rate (Default is 6%) for CLV Prediction",
-                                           min_value=0.01,
-                                           max_value=0.25,
-                                           value=0.06)
+    dataset_checkbox = st.checkbox("Use the Sample Dataset?", value=True, key="dataset_checkbox")
+
+    if dataset_checkbox:
+        dataset_file = config["app"]["app_dataset"]
+        ss.attribute_is_valid = True
+    else:
+        dataset_file = st.file_uploader('Upload a customer transaction data')
+
+    if dataset_file is not None and ss.df0 is not None:
+        # Annual Discount Rate Selection
+        annual_discount_rate = st.number_input("Input Annual Interest Rate (Default is 6%) for CLV Prediction",
+                                               min_value=1.0,
+                                               max_value=25.0,
+                                               value=6.0,
+                                               step=0.5,
+                                               format="%0.1f") / 100
+
 
 # Data Loading
 if dataset_file is not None and ss.df0 is None:
     ss.df0 = read_order_intake_csv(dataset_file)
 
 # Modelling Setup
-if ss.df0 is not None:
+if ss.df0 is not None and not dataset_checkbox:
     col1.header("2. Setup")
     with col1.expander("Attribute Selection", expanded=True):
         # Get Column Name of the Uploaded Dataframe
@@ -125,7 +135,7 @@ if ss.df0 is not None:
             submitted = st.form_submit_button("Submit")
 
             # Snapshot the selected attributes in a dictionary
-            ss.selected_columns_dict = {"Date": df_date_col,
+            ss.selected_columns_dict = {"Transaction_Date": df_date_col,
                                      "Product": df_product_category_col,
                                      "Customer_ID": df_customer_id_col,
                                      "Customer_Name": df_customer_name_col,
@@ -158,14 +168,18 @@ with st.expander("App Overview"):
         st.markdown(app_overview_guide)
 
 # App Workflow
-with st.expander("App Workflow"):
-    st.markdown("**Workflow**")
-    app_workflow_image = config["app"]["app_workflow_image"]
-    image = Image.open(app_workflow_image)
-    st.image(image, caption='Basic Workflow', width=800)
+with st.expander("App Conceptual Model"):
+    st.markdown("**Conceptual Model**")
+    app_conceptual_model_image = config["app"]["app_conceptual_model_image"]
+    image = Image.open(app_conceptual_model_image)
+    st.image(image, caption='Conceptual Model', width=800)
 
 
 if ss.df0 is not None and ss.attribute_is_valid:
+    with st.expander("View Dataset"):
+        st.markdown("Sample Customer Transaction Dataset from April 2018 to March 2022.")
+        st.dataframe(ss.df0)
+
     # Model Evaluation Section
     st.header("2. Model Evaluation")
 
@@ -485,7 +499,7 @@ if ss.df_viz_list is not None:
             with left_column:
                 st.subheader("Top 20 Customers by CLV")
 
-                industry_options = df_plot_prep["Product"].unique()
+                industry_options = df_plot_prep["Product"].unique().tolist()
                 industry_options.insert(0, "All")
 
                 industry_filter_selection = st.selectbox("Industry Filter", industry_options, key="top20_industry")
@@ -505,7 +519,7 @@ if ss.df_viz_list is not None:
                     # Industry & Product Filter
                     with left_column:
 
-                        industry_options = df_plot_prep["Product"].unique()
+                        industry_options = df_plot_prep["Product"].unique().tolist()
                         industry_options.insert(0, "All")
 
                         industry_filter_selection = st.selectbox("Industry Filter", industry_options,
