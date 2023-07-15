@@ -79,8 +79,6 @@ if "customer_name_input" not in ss:
     ss.customer_name_input = None
 if "prob_alive_input" not in ss:
     ss.prob_alive_input = None
-if "expected_lifetime" not in ss:
-    ss.expected_lifetime = None
 
 # App Title & Description
 with st.container():
@@ -96,6 +94,12 @@ col1.header("1. Data")
 with col1.expander("Dataset", expanded=True):
     # Uploader
     dataset_file = st.file_uploader('Upload the order intake data')
+
+    # Annual Discount Rate Selection
+    annual_discount_rate = st.number_input("Input Annual Interest Rate (Default is 6%) for CLV Prediction",
+                                           min_value=0.01,
+                                           max_value=0.25,
+                                           value=0.06)
 
 # Data Loading
 if dataset_file is not None and ss.df0 is None:
@@ -137,37 +141,6 @@ if ss.df0 is not None:
                     else:
                         ss.attribute_is_valid = True
 
-    # Prediction Inputs
-    if ss.attribute_is_valid:
-
-        # Rename the Dataframe Columns for Standardization
-        reversed_selected_columns_dict = {value: key for key, value in ss.selected_columns_dict.items()}
-        ss.df0.rename(columns=reversed_selected_columns_dict, inplace=True)
-
-        col1.header("3. Prediction Inputs")
-        with col1.expander("User Inputs", expanded=True):
-
-            # Get All Unique Values of Industry Columns
-            industry_options = ss.df0["Industry"].unique()
-            # Add "All" to Train All the Unique Values
-            industry_options = np.insert(industry_options, 0, "All")
-            # User Industry Selection for Training
-            industry_selection = st.selectbox('Select industries to be trained on', industry_options, index=0)
-
-            # Annual Discount Rate Selection
-            annual_discount_rate = st.number_input("Input Annual Interest Rate (Default is 6%)",
-                                                   min_value=0.01,
-                                                   max_value=0.25,
-                                                   value=0.06)
-
-            # Expected Lifetime Selection
-            expected_lifetime = st.slider("Select prediction lifetime (Months)",
-                                          min_value=12,
-                                          max_value=120,
-                                          step=12)
-
-            ss.expected_lifetime = expected_lifetime
-
 # Main Panel Section
 
 st.header("1. Overview")
@@ -200,7 +173,7 @@ if ss.df0 is not None and ss.attribute_is_valid:
     train_checkbox = st.checkbox("Train Model")
 
     # Data Preparation
-    ss.product_list, ss.df_list = modelling_data_prep(industry_selection, ss.df0)
+    ss.product_list, ss.df_list = modelling_data_prep(ss.df0)
 
     # Train BG/NBD to Fit on the full dataset
     if train_checkbox:
@@ -294,7 +267,7 @@ if ss.df0 is not None and ss.attribute_is_valid:
 
             #   Predict Customer Lifetime Value and add to the output dataframe
             for (product, df_rftv), (product, ggf), (product, bgf) in zip(ss.df_rftv_list.items(), ss.ggf_list.items(), ss.bgf_full_list.items()):
-                df_rftv_new2 = compute_clv(df_rftv, ggf, bgf, annual_discount_rate, ss.expected_lifetime)
+                df_rftv_new2 = compute_clv(df_rftv, ggf, bgf, annual_discount_rate)
                 ss.df_rftv_list[product] = df_rftv_new2
 
         # Model Evaluation Visualization
@@ -432,13 +405,6 @@ if ss.df0 is not None and ss.attribute_is_valid:
                         st.dataframe(ss.df_viz_list[product].describe().style.format("{:,.2f}"))
 
 if ss.df_viz_list is not None:
-    # Side Bar Visualization Filters
-    # col1.header("4. Visualization Filters")
-    # with col1.expander("Select Filter"):
-    #     industry_type_cust = st.selectbox("Select Industry Type for Top 20 Customers", industry_options)
-    #     p_alive_slider = st.slider("Probability alive lower than X %", 10, 100, 80)
-    #     ss.prob_alive_input = float(p_alive_slider / 100)
-
     st.header("3. Visualization")
 
     # RFM Spread Visualization
@@ -489,10 +455,10 @@ if ss.df_viz_list is not None:
 
                     with profile_col1:
                         st.markdown("**Recency**")
-                        st.markdown(str(rfm_summary_dict["Recency"]) + " Lifetime Length")
+                        st.markdown(str(rfm_summary_dict["Recency"]) + " Lifetime Length (Months)")
                     with profile_col2:
                         st.markdown("**Frequency**")
-                        st.markdown(str(rfm_summary_dict["Frequency"]) + " Active Days")
+                        st.markdown(str(rfm_summary_dict["Frequency"]) + " Active Months")
                     with profile_col3:
                         st.markdown("**Monetary**")
                         st.markdown("$ " + f'{rfm_summary_dict["Monetary"]:,}' + " Average Purchase Value")
@@ -500,10 +466,10 @@ if ss.df_viz_list is not None:
                         st.markdown("**Last Purchase Date**")
                         st.markdown(rfm_summary_dict["Last Purchase"])
                     with profile_col5:
-                        st.markdown("**Predicted Purchase**")
+                        st.markdown("**Predicted Purchase in Upcoming Year**")
                         st.markdown(str(rfm_summary_dict["Predicted Purchase"]) + " Purchases")
                     with profile_col6:
-                        st.markdown("**CLV**")
+                        st.markdown("**CLV in Upcoming Year**")
                         st.markdown("$ " + f'{rfm_summary_dict["CLV"]:,}')
 
     # Top Customers
@@ -518,6 +484,9 @@ if ss.df_viz_list is not None:
             left_column, right_column = st.columns(2)
             with left_column:
                 st.subheader("Top 20 Customers by CLV")
+
+                industry_options = df_plot_prep["Product"].unique()
+                industry_options.insert(0, "All")
 
                 industry_filter_selection = st.selectbox("Industry Filter", industry_options, key="top20_industry")
                 product_filter_selection = st.multiselect("Product Filter", df_plot_prep["Product"].unique(), key="top20_product")
@@ -535,6 +504,10 @@ if ss.df_viz_list is not None:
 
                     # Industry & Product Filter
                     with left_column:
+
+                        industry_options = df_plot_prep["Product"].unique()
+                        industry_options.insert(0, "All")
+
                         industry_filter_selection = st.selectbox("Industry Filter", industry_options,
                                                                  key="growth_industry")
                         product_filter_selection = st.multiselect("Product Filter", df_plot_prep["Product"].unique(),
@@ -554,6 +527,10 @@ if ss.df_viz_list is not None:
                         customer_filter_selection = st.selectbox("Customer Filter", customer_filter_list,
                                                                  key="growth_customer")
 
+                        st.markdown("Note: The model only predicts customers that have repeated purchase"
+                                    " (more than once) so the figure may be smaller than the previous year")
+
+
                 df_plot = sales_growth_data_prep(df_plot_prep, industry_filter_selection,
                                                  product_filter_selection, customer_filter_selection)
 
@@ -565,21 +542,32 @@ if ss.df_viz_list is not None:
 
         # Line Plot for Comparison
         with st.container():
-            st.subheader("Top 20 Customers by CLV")
+            st.subheader("Comparison Line Plot")
             left_column, right_column = st.columns((1,4))
 
             # Line Plot Filters
             with left_column:
-                line_plot_group = st.selectbox("Select Grouping Variable", ["Industry", "Product"],
+                line_plot_group = st.selectbox("Select Grouping Variable", ["Industry", "Industry_Segment", "Product"],
                                                index=0, key="line_plot_group")
+
                 industry_filter_selection = st.multiselect("Industry Filter", df_plot_prep["Industry"].unique(),
                                                            key="line_plot_industry")
+
+                if not industry_filter_selection:
+                    df_industry_segment_selection = df_plot_prep
+                else:
+                    df_industry_segment_selection = df_plot_prep[df_plot_prep['Industry'].isin(industry_filter_selection)]
+
+                industry_segment_filter_selection = st.multiselect("Industry Segment Filter",
+                                                                   df_industry_segment_selection["Industry_Segment"].unique(),
+                                                                   key="line_plot_industry_segment")
+
                 product_filter_selection = st.multiselect("Product Filter", df_plot_prep["Product"].unique(),
                                                           key="line_plot_product")
 
             # Line Plot Chart
             with right_column:
-                df_plot = line_plot_data_prep(df_plot_prep, industry_filter_selection,
+                df_plot = line_plot_data_prep(df_plot_prep, industry_filter_selection, industry_segment_filter_selection,
                                               product_filter_selection, line_plot_group)
 
                 plot = fig_line_plot(df_plot, colors, line_plot_group)

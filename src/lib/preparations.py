@@ -15,13 +15,7 @@ def read_order_intake_csv(dataset_file):
     df0 = pd.read_csv(dataset_file, sep=";")
     return df0
 
-def modelling_data_prep(industry_selection, df0):
-
-    # Filter Dataframe to the Selected Industries
-    if industry_selection == "All":
-        pass
-    else:
-        df0 = df0["Industry"].isin([industry_selection])
+def modelling_data_prep(df0):
 
     # Treat CustomerID as a categorical variable
     df0["Customer_ID"].astype(np.int64).astype(object)
@@ -191,9 +185,9 @@ def gg_evaluation(df_rftv):
 
 # compute customer lifetime value
 @st.cache_resource
-def compute_clv(df_rftv, _ggf, _bgf, annual_discount_rate, expected_lifetime):
+def compute_clv(df_rftv, _ggf, _bgf, annual_discount_rate):
     DISCOUNT_a = annual_discount_rate  # annual discount rate
-    LIFE = expected_lifetime  # lifetime expected for the customers in months
+    LIFE = 12 # lifetime expected for the customers in months
 
     discount_m = (1 + DISCOUNT_a) ** (1 / 12) - 1  # monthly discount rate
 

@@ -261,7 +261,7 @@ def fig_top20(df_plot, colors):
         y=alt.Y('Customer_Name', stack=True, sort=alt.EncodingSortField(field="Rank", op='min', order='ascending')),
         x='Transaction_Value',
         color=alt.Color('Product', scale=alt.Scale(range=colors)),
-    ).transform_filter(alt.datum.Rank <= 20).properties(height=500).interactive()
+    ).transform_filter(alt.datum.Rank <= 20).properties(height=550).interactive()
 
     return plot
 
@@ -305,7 +305,7 @@ def fig_sales_growth(df_plot, colors):
     return plot
 
 @st.cache_data()
-def line_plot_data_prep(df_plot_prep, industry_filter, product_filter, group_selection):
+def line_plot_data_prep(df_plot_prep, industry_filter, industry_segment_filter, product_filter, group_selection):
     df_plot = df_plot_prep
 
     # Filter df to selected industry
@@ -313,6 +313,12 @@ def line_plot_data_prep(df_plot_prep, industry_filter, product_filter, group_sel
         pass
     else:
         df_plot = df_plot[df_plot["Industry"].isin(industry_filter)]
+
+    # Filter df to selected industry
+    if not industry_segment_filter:
+        pass
+    else:
+        df_plot = df_plot[df_plot["Industry_Segment"].isin(industry_segment_filter)]
 
     # Filter df to selected products
     if not product_filter:
@@ -322,6 +328,8 @@ def line_plot_data_prep(df_plot_prep, industry_filter, product_filter, group_sel
 
     if group_selection == "Industry":
         df_plot = df_plot.groupby(["Fiscal_Year", "Industry"])['Transaction_Value'].sum().reset_index()
+    elif group_selection == "Industry_Segment":
+        df_plot = df_plot.groupby(["Fiscal_Year", "Industry_Segment"])['Transaction_Value'].sum().reset_index()
     elif group_selection == "Product":
         df_plot = df_plot.groupby(["Fiscal_Year", "Product"])['Transaction_Value'].sum().reset_index()
 
