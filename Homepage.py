@@ -5,7 +5,7 @@ from src.lib.util import *
 
 # Page Config
 
-st.set_page_config(layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Homepage", page_icon="📒", layout="wide", initial_sidebar_state="expanded")
 
 # Side Bar & Main Panel Setup
 col1 = st.sidebar
