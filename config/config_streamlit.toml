@@ -2,7 +2,8 @@
 
 app_title = "Customer-Base Analysis App"
 
-app_description = "This app is for analyzing customer-base purchase pattern and future value (Customer Lifetime Value)"
+app_description = """This app is a demo made by Ahmad Karami of his Industrial Engineering Bachelor Degree Final Project.
+This app allows businesses to identify their highest-value customers, analyze their purchase patterns, detect customer churn, and predict the future value of their customers."""
 
 app_overview_definition = """
 **App Functions**
