@@ -98,7 +98,7 @@ if train_checkbox:
                         df_chi_square_test_customer_count, chi, pval,\
                         dof, exp, significance, critical_value = chi_square_test_customer_count(product, ss.bgf_list)
 
-                        st._legacy_dataframe(df_chi_square_test_customer_count.style.format("{:,.0f}"))
+                        st.dataframe(df_chi_square_test_customer_count.style.format("{:,.0f}"))
 
                         st.markdown('p-value is {:.5f}'.format(pval))
                         st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
@@ -116,7 +116,7 @@ if train_checkbox:
                         df_chi_square_test_cal_vs_hol, chi, pval, \
                         dof, exp, significance, critical_value = chi_square_test_cal_vs_hol(ss.df_ch_list, ss.bgf_list, product)
 
-                        st._legacy_dataframe(df_chi_square_test_cal_vs_hol.style.format("{:,.2f}"))
+                        st.dataframe(df_chi_square_test_cal_vs_hol.style.format("{:,.2f}"))
 
                         st.markdown('p-value is {:.5f}'.format(pval))
                         st.markdown('chi = %.6f, critical value = %.6f' % (chi, critical_value))
